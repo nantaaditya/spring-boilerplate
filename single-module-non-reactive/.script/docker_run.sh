@@ -1,0 +1,1 @@
+docker run -d -p 8080:8080 --env-file .env/dev.env --name example example:0.0.1
