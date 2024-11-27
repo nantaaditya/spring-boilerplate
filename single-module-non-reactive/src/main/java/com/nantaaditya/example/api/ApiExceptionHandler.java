@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,21 +32,21 @@ public class ApiExceptionHandler {
 
   @ResponseBody
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public Response<Object> methodArgumentNotValid(MethodArgumentNotValidException exception) {
+  public ResponseEntity<Response<Object>> methodArgumentNotValid(MethodArgumentNotValidException exception) {
     log.error(ERROR_LOG, exception);
 
     Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, from(exception));
     ContextHelper.put(collectErrors(exception));
 
-    return response;
+    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
   }
 
   @ResponseBody
   @ExceptionHandler(Throwable.class)
-  public Response<Object> throwable(Throwable throwable) {
+  public ResponseEntity<Response<Object>> throwable(Throwable throwable) {
     log.error(ERROR_LOG, throwable);
 
-    return Response.failed(ResponseCode.INTERNAL_ERROR, Map.of());
+    return new ResponseEntity<>(Response.failed(ResponseCode.INTERNAL_ERROR, Map.of()), HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   private String collectErrors(MethodArgumentNotValidException ex) {

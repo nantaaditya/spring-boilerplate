@@ -21,7 +21,7 @@ this is the list of dependencies on this project:
 ## Project Structure
 this is the project structure of this project
 
-### SRC
+### SRC/MAIN
 main java source code, consist of:
 - API
 this package for storing REST API endpoint
@@ -43,6 +43,19 @@ this package for storing query action into database
 this package for storing main business process
 - VALIDATOR
 this package for storing custom validation to validate request
+
+### SRC/TEST
+test java source code using behaviour driven development, consist of:
+- CONFIGURATION
+this package for storing test configuration
+- HELPER
+this package for storing test helper
+- MODEL
+this package for storing request, response, and constant POJO 
+- STEPS
+this package for storing component for BDD using selenium
+- FEATURES
+this folder for storing cucumber feature
 
 ### .DOCKER
 Dockerfile to create docker container image

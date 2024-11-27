@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  servlet:
+    context-path: ${CONTEXT_PATH:}
+
+spring:
+  application.name: example-app-test
+
+  banner:
+    location: classpath:banner.txt
+
+  flyway:
+    enabled: false
+    baseline-on-migrate: false
+    validate-on-migrate: false
+    locations: classpath:db/migration
+
+  datasource:
+    url: jdbc:h2:mem:exampledb
+    username: username
+    password: password
+    driver-class-name: org.h2.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 10
+      connection-timeout: 5000
+      idle-timeout: 60000
+      max-lifetime: 300000
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate.format_sql: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.hibernate: INFO
+    com.nantaaditya: INFO
+  file.name: /example-app.log
+
+management:
+  server.port: 1001
