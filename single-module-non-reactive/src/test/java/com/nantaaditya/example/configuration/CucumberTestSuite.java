@@ -10,6 +10,9 @@ import org.junit.platform.suite.api.Suite;
 @IncludeEngines("cucumber")
 @SelectClasspathResource("features")
 @ConfigurationParameter(
+    key = Constants.PLUGIN_PROPERTY_NAME,
+    value = "com.aventstack.extentreports.cucumber.adapter.ExtentCucumberAdapter:")
+@ConfigurationParameter(
     key = Constants.GLUE_PROPERTY_NAME,
     value = "com.nantaaditya.example"
 )
