@@ -11,8 +11,10 @@ public class HeaderRequest {
   private static HeaderRequest instance;
 
   public static HeaderRequest getInstance() {
-    if (instance == null) {
-      instance = new HeaderRequest();
+    synchronized (HeaderRequest.class) {
+      if (instance == null) {
+        instance = new HeaderRequest();
+      }
     }
     return instance;
   }

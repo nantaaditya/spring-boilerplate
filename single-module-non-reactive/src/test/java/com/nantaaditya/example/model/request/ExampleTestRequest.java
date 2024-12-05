@@ -12,8 +12,10 @@ public class ExampleTestRequest {
   private ExampleTestRequest() { }
 
   public static ExampleTestRequest getInstance() {
-    if (instance == null) {
-      instance = new ExampleTestRequest();
+    synchronized (ExampleTestRequest.class) {
+      if (instance == null) {
+        instance = new ExampleTestRequest();
+      }
     }
     return instance;
   }
