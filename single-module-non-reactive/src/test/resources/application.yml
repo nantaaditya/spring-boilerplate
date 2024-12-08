@@ -59,3 +59,5 @@ apps:
   log:
     enable-trace-log: true
     ignored-trace-log-path: /none
+  swagger:
+    host: http://localhost
