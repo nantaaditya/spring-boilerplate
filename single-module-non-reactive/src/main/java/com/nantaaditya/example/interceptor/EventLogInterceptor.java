@@ -3,6 +3,7 @@ package com.nantaaditya.example.interceptor;
 import com.nantaaditya.example.entity.EventLog;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.model.dto.ContextDTO;
+import com.nantaaditya.example.properties.LogProperties;
 import com.nantaaditya.example.repository.EventLogRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,9 +15,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class EventLogInterceptor implements HandlerInterceptor {
 
   private final EventLogRepository eventLogRepository;
+  private final LogProperties logProperties;
 
-  public EventLogInterceptor(EventLogRepository eventLogRepository) {
+  public EventLogInterceptor(EventLogRepository eventLogRepository, LogProperties logProperties) {
     this.eventLogRepository = eventLogRepository;
+    this.logProperties = logProperties;
   }
 
   @Override
@@ -28,6 +31,11 @@ public class EventLogInterceptor implements HandlerInterceptor {
 
       if (context == null) {
         log.warn("#EventLog - context is null");
+        return;
+      }
+
+      if (logProperties.isIgnoredTraceLogPath(context.path())) {
+        log.debug("#EventLog - ignored trace log path");
         return;
       }
 

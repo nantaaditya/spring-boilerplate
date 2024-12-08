@@ -15,6 +15,7 @@ public class ContextHelper {
 
   private static final ObjectMapper mapper = new ObjectMapper();
 
+  private static final String REQUEST_ID_KEY = "requestId";
   private static final String CONTEXT_KEY = "context";
   private static final String ADDITIONAL_DATA_KEY = "additionalData";
 
@@ -27,6 +28,7 @@ public class ContextHelper {
   public static void put(ContextDTO contextDTO) {
     try {
       String json = mapper.writeValueAsString(contextDTO);
+      MDC.put(REQUEST_ID_KEY, contextDTO.requestId());
       MDC.put(CONTEXT_KEY, json);
     } catch (JsonProcessingException ex) {
       log.error("#MDC - failed to save {}", CONTEXT_KEY, ex);

@@ -22,12 +22,16 @@ public class HeaderFilter implements Filter {
   @Value("${server.servlet.context-path}")
   private String contextPath;
 
+  private static final String FAVICON_ICO = "/favicon.ico";
+
   @Override
   public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse,
       FilterChain filterChain) throws IOException, ServletException {
 
     HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+
+    if (httpServletRequest.getRequestURI().contains(FAVICON_ICO)) return;
 
     ContextDTO contextDTO = new ContextDTO(
         httpServletRequest.getHeader(HeaderConstant.CLIENT_ID.getHeader()),
@@ -38,6 +42,7 @@ public class HeaderFilter implements Filter {
         DateTimeHelper.getDateInFormat(ZonedDateTime.now(), DateTimeHelper.ISO_8601_GMT7_FORMAT),
         null, null, null
     );
+
     ContextHelper.put(contextDTO);
 
     httpServletResponse.addHeader(HeaderConstant.CLIENT_ID.getHeader(), contextDTO.clientId());

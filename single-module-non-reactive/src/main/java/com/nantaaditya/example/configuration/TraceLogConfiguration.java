@@ -3,11 +3,14 @@ package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
+import com.nantaaditya.example.properties.LogProperties;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange;
 import org.springframework.boot.actuate.web.exchanges.HttpExchangeRepository;
 import org.springframework.stereotype.Component;
@@ -16,7 +19,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TraceLogConfiguration implements HttpExchangeRepository {
 
-  AtomicReference<HttpExchange> httpTrace = new AtomicReference<>();
+  @Autowired
+  private LogProperties logProperties;
+  private AtomicReference<HttpExchange> httpTrace = new AtomicReference<>();
+
+  private static final String BREAKPOINT = "\n";
 
   @Override
   public List<HttpExchange> findAll() {
@@ -28,20 +35,41 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     HttpExchange.Request request = trace.getRequest();
     HttpExchange.Response response = trace.getResponse();
 
-    log.trace("#TRACE: headers - {}", getHeaders(response.getHeaders()));
-    log.trace("#TRACE: [{}] - {}, response {}, response time {}ms",
-        request.getMethod(), request.getUri().toString(), response.getStatus(), trace.getTimeTaken());
+    if (!logProperties.isEnableTraceLog() || logProperties.isIgnoredTraceLogPath(request.getUri().getPath())) {
+      ContextHelper.cleanUp();
+      return;
+    }
+
+    StringBuilder logContent = new StringBuilder("#Trace");
+    logContent.append(BREAKPOINT);
+    logContent
+        .append(request.getMethod())
+        .append(" ")
+        .append(request.getUri().getPath());
+    logContent.append(BREAKPOINT);
+    logContent
+        .append("http status: [")
+        .append(response.getStatus())
+        .append("] ")
+        .append("time taken: [")
+        .append(trace.getTimeTaken().toMillis())
+        .append("] ms")
+        .append(BREAKPOINT);
+
+    for (Entry<String, List<String>> headers : request.getHeaders().entrySet()) {
+      if (isInternalHeader(headers.getKey())) {
+        logContent.append(headers.getKey()).append(": ").append(headers.getValue()).append(BREAKPOINT);
+      }
+    }
+
+    log.info(logContent.toString());
     httpTrace.set(trace);
 
     ContextHelper.cleanUp();
   }
 
-  private String getHeaders(Map<String, List<String>> headers) {
-    StringBuilder sb = new StringBuilder();
-    headers.entrySet()
-        .stream()
-        .filter(entry -> HeaderConstant.contains(entry.getKey()))
-        .forEach(item -> sb.append("{").append(item.getKey()).append(": ").append(item.getValue()).append("},"));
-    return sb.toString();
+  private boolean isInternalHeader(String headerKey) {
+    return Stream.of(HeaderConstant.values())
+        .anyMatch(h -> h.getHeader().equals(headerKey));
   }
 }
