@@ -1,10 +1,10 @@
 package com.nantaaditya.example.entity;
 
 
+import com.nantaaditya.example.entity.generator.TimeSeriesId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -25,8 +24,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @AllArgsConstructor
 public class EventLog {
   @Id
-  @GenericGenerator(name = "tsid", strategy = "com.nantaaditya.example.entity.generator.TsidGenerator")
-  @GeneratedValue(generator = "tsid")
+  @TimeSeriesId
   private String id;
   private String clientId;
   private String requestId;
