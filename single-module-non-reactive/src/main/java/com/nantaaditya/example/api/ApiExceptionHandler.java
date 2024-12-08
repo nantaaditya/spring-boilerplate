@@ -13,12 +13,12 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
@@ -31,22 +31,24 @@ public class ApiExceptionHandler {
   private static final String ERROR_LOG = "#ApiError - exception, ";
 
   @ResponseBody
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Response<Object>> methodArgumentNotValid(MethodArgumentNotValidException exception) {
+  public Response<Object> methodArgumentNotValid(MethodArgumentNotValidException exception) {
     log.error(ERROR_LOG, exception);
 
     Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, from(exception));
     ContextHelper.put(collectErrors(exception));
 
-    return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    return response;
   }
 
   @ResponseBody
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   @ExceptionHandler(Throwable.class)
-  public ResponseEntity<Response<Object>> throwable(Throwable throwable) {
+  public Response<Object> throwable(Throwable throwable) {
     log.error(ERROR_LOG, throwable);
 
-    return new ResponseEntity<>(Response.failed(ResponseCode.INTERNAL_ERROR, Map.of()), HttpStatus.INTERNAL_SERVER_ERROR);
+    return Response.failed(ResponseCode.INTERNAL_ERROR, Map.of());
   }
 
   private String collectErrors(MethodArgumentNotValidException ex) {

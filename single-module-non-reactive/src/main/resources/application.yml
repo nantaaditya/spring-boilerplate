@@ -36,13 +36,16 @@ spring:
     properties:
       hibernate.format_sql: ${HIBERNATE_FORMAT_SQL:true}
 
+  jackson:
+    default-property-inclusion: non_null
+
 logging:
   level:
     root: ${ROOT_LOG_LEVEL:INFO}
     org.springframework: ${SPRING_LOG_LEVEL:INFO}
     org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
-  file.name: ${LOG_PATH:/}
+  file.path: ${LOG_PATH:.logs/}
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
@@ -56,3 +59,6 @@ apps:
         queue-capacity: ${ASYNC_DEFAULT_QUEUE:50}
         keep-alive-seconds: ${ASYNC_DEFAULT_KEEP_ALIVE:60}
         thread-name-prefix: ${ASYNC_DEFAULT_THREAD_NAME:async-}
+  log:
+    enable-trace-log: ${ENABLE_TRACE_LOG:true}
+    ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:}

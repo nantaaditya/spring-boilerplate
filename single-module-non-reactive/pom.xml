@@ -48,10 +48,18 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
@@ -76,7 +84,6 @@
 			<artifactId>tsid-creator</artifactId>
 			<version>${tsid.version}</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -124,7 +131,16 @@
 			<version>${extentreports-cucumber.version}</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-observation-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 

@@ -1,5 +1,6 @@
 package com.nantaaditya.example.model.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.model.constant.ResponseCode;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Response<T> {
 
   private ResponseMetadata response;
