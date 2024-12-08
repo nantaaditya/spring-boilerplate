@@ -46,3 +46,13 @@ logging:
 
 management:
   server.port: 1001
+
+apps:
+  async:
+    configurations:
+      default:
+        core-pool-size: 1
+        max-pool-size: 5
+        queue-capacity: 10
+        keep-alive-seconds: 30
+        thread-name-prefix: async-
