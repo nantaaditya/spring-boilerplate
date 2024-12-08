@@ -3,6 +3,7 @@ package com.nantaaditya.example.api.internal;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
 import com.nantaaditya.example.service.internal.DatabaseMigrationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/internal-api/database")
+@Tag(name = "internal api", description = "internal api for utility purpose")
 public class DatabaseController {
 
   private final DatabaseMigrationService databaseMigrationService;

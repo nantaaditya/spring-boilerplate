@@ -61,4 +61,6 @@ apps:
         thread-name-prefix: ${ASYNC_DEFAULT_THREAD_NAME:async-}
   log:
     enable-trace-log: ${ENABLE_TRACE_LOG:true}
-    ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:}
+    ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:/swagger-ui,/swagger-ui/*,/v3/api-docs,/v3/api-docs/*}
+  swagger:
+    host: ${SWAGGER_HOST:http://localhost}

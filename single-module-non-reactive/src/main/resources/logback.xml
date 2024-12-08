@@ -4,7 +4,7 @@
   <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
 
   <springProperty name="APP_NAME" source="spring.application.name" defaultValue="apps" />
-  <springProperty name="LOG_PATH" source="logging.file.path" />
+  <springProperty name="LOG_PATH" source="logging.file.path" defaultValue=".logs/"/>
   <springProperty name="ROOT_LOG_LEVEL" source="logging.level.root" />
 
   <appender name="appLog" class="ch.qos.logback.core.rolling.RollingFileAppender">

@@ -4,8 +4,9 @@ import lombok.Getter;
 
 public enum ResponseCode {
   SUCCESS("000", "success"),
-  INVALID_PARAMS("900", "invalid parameters"),
-  INTERNAL_ERROR("901", "internal error"),;
+  BAD_REQUEST("400", "bad request"),
+  INTERNAL_ERROR("500", "internal error"),
+  INVALID_PARAMS("900", "invalid parameters");
 
   @Getter
   private String code;
