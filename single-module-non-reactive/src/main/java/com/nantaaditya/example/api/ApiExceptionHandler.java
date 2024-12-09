@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -38,6 +39,18 @@ public class ApiExceptionHandler {
 
     Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, from(exception));
     ContextHelper.put(collectErrors(exception));
+
+    return response;
+  }
+
+  @ResponseBody
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public Response<Object> noHandlerException(NoHandlerFoundException exception) {
+    log.error(ERROR_LOG, exception);
+
+    Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, Map.of("endpoint", List.of("not available")));
+    ContextHelper.put(exception.getMessage());
 
     return response;
   }
