@@ -50,7 +50,7 @@ management:
     shutdown.access: none
   endpoints:
     web:
-      exposure.include: *
+      exposure.include: '*'
   tracing:
     baggage:
       correlation:
@@ -70,5 +70,6 @@ apps:
   log:
     enable-trace-log: true
     ignored-trace-log-path: /swagger-ui,/swagger-ui/*,/v3/api-docs,/v3/api-docs/*
+    sensitive-field: x-client-id
   swagger:
     host: http://localhost

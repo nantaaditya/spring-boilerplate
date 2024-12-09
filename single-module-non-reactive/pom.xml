@@ -28,10 +28,19 @@
 		<java.version>21</java.version>
     <gson.version>2.11.0</gson.version>
 		<h2.version>2.1.214</h2.version>
+		<jacoco-maven.version>0.8.12</jacoco-maven.version>
 		<junit-platform.version>1.11.3</junit-platform.version>
 		<maven-model.version>3.9.9</maven-model.version>
 		<swagger.version>2.7.0</swagger.version>
 		<tsid.version>5.2.6</tsid.version>
+
+		<sonar.coverage.jacoco.xmlReportPath>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPath>
+		<sonar.exclusions>
+			**/properties/*
+		</sonar.exclusions>
+		<sonar.coverage.exclusions>
+			**/properties/*
+		</sonar.coverage.exclusions>
 	</properties>
 
 	<dependencies>
@@ -156,6 +165,34 @@
 						<configuration>
 							<includeScope>runtime</includeScope>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco-maven.version}</version>
+
+				<configuration>
+					<excludes>
+						<exclude>com/nantaaditya/example/properties/*</exclude>
+					</excludes>
+				</configuration>
+
+				<executions>
+					<execution>
+						<id>jacoco-initialize</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>post-unit-test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
