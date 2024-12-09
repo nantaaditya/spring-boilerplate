@@ -17,8 +17,8 @@ spring:
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/boilerplate}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:changeme}
+    username: ${DB_USERNAME:user}
+    password: ${DB_PASSWORD:password}
     driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
     hikari:
       minimum-idle: ${HIKARI_MIN_POOL:10}
