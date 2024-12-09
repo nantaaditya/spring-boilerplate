@@ -46,6 +46,17 @@ logging:
 
 management:
   server.port: 1001
+  endpoint:
+    shutdown.access: none
+  endpoints:
+    web:
+      exposure.include: *
+  tracing:
+    baggage:
+      correlation:
+        fields: requestId
+      local-fields: requestId
+      remote-fields: requestId
 
 apps:
   async:
@@ -58,6 +69,6 @@ apps:
         thread-name-prefix: async-
   log:
     enable-trace-log: true
-    ignored-trace-log-path: /none
+    ignored-trace-log-path: /swagger-ui,/swagger-ui/*,/v3/api-docs,/v3/api-docs/*
   swagger:
     host: http://localhost

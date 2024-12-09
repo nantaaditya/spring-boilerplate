@@ -97,7 +97,7 @@
     <appender-ref ref="traceLog" />
   </logger>
 
-  <logger name="com.nantaaditya.*" additivity="false" level="WARNING">
+  <logger name="com.nantaaditya.example.*" additivity="false" level="WARNING">
     <appender-ref ref="CONSOLE" />
     <appender-ref ref="errorLog" />
   </logger>

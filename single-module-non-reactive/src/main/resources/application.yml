@@ -17,8 +17,8 @@ spring:
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/boilerplate}
-    username: ${DB_USERNAME:user}
-    password: ${DB_PASSWORD:password}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:changeme}
     driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
     hikari:
       minimum-idle: ${HIKARI_MIN_POOL:10}
@@ -49,6 +49,17 @@ logging:
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
+  endpoint:
+    shutdown.access: ${ACTUATOR_SHUTDOWN:none}
+  endpoints:
+    web:
+      exposure.include: ${ACTUATOR_EXPOSED:*}
+  tracing:
+    baggage:
+      correlation:
+        fields: ${TRACING_CORRELATION_FIELDS:requestId}
+      local-fields: ${TRACING_LOCAL_FIELDS:requestId}
+      remote-fields: ${TRACING_REMOTE_FIELDS:requestId}
 
 apps:
   async:
@@ -62,5 +73,6 @@ apps:
   log:
     enable-trace-log: ${ENABLE_TRACE_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:/swagger-ui,/swagger-ui/*,/v3/api-docs,/v3/api-docs/*}
+    sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
