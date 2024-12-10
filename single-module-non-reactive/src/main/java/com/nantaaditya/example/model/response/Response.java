@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@SuppressWarnings("java:S1068")
 public class Response<T> {
 
   private ResponseMetadata response;
@@ -27,6 +28,7 @@ public class Response<T> {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @SuppressWarnings("java:S1068")
   public static class ResponseMetadata {
     private String code;
     private String description;
@@ -37,6 +39,7 @@ public class Response<T> {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @SuppressWarnings("java:S1068")
   public static class ErrorMetadata {
     private Map<String, List<String>> violations;
   }

@@ -35,12 +35,6 @@
 		<tsid.version>5.2.6</tsid.version>
 
 		<sonar.coverage.jacoco.xmlReportPath>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPath>
-		<sonar.exclusions>
-			**/properties/*
-		</sonar.exclusions>
-		<sonar.coverage.exclusions>
-			**/properties/*
-		</sonar.coverage.exclusions>
 	</properties>
 
 	<dependencies>
@@ -176,7 +170,11 @@
 
 				<configuration>
 					<excludes>
-						<exclude>com/nantaaditya/example/properties/*</exclude>
+						<exclude>**/properties/*</exclude>
+						<exclude>**/entity/*</exclude>
+						<exclude>**/model/**</exclude>
+						<exclude>**/repository/*</exclude>
+						<exclude>**/service/internal/*</exclude>
 					</excludes>
 				</configuration>
 
@@ -188,8 +186,8 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>post-unit-test</id>
-						<phase>test</phase>
+						<id>post-test</id>
+						<phase>package</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>

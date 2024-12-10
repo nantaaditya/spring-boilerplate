@@ -11,6 +11,7 @@ import org.springframework.util.AntPathMatcher;
 @Slf4j
 @Data
 @ConfigurationProperties(value = "apps.log")
+@SuppressWarnings("java:S1068")
 public class LogProperties {
   private boolean enableTraceLog;
   private String ignoredTraceLogPath;

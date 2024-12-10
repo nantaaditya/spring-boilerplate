@@ -22,7 +22,7 @@ public class ObservationHelper {
 
   private final ObservationRegistry observationRegistry;
 
-  public <S, T, C extends Context, E extends Event> T observeApi(S request,
+  public <S, T> T observeApi(S request,
       Function<S, T> processFunction) {
     return observe(
         ObservationConstant.PUBLIC_API.getName(),
