@@ -27,14 +27,14 @@ public class ExampleController {
   )
   public Response<String> get() {
     return observationHelper.observeApi(
-        "Hello world", request -> Response.success(request));
+        "Hello world", Response::success);
   }
 
   @PostMapping(
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Response<ExampleResponse> post(@Valid @RequestBody ExampleRequest request) {;
+  public Response<ExampleResponse> post(@Valid @RequestBody ExampleRequest request) {
     return observationHelper.observeApi(request, r -> {
       ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
       return Response.success(exampleResponse);

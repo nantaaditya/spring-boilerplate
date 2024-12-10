@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Data
 @ConfigurationProperties("apps.async")
+@SuppressWarnings("java:S1068")
 public class AsyncTaskProperties {
 
   private Map<String, Configuration> configurations = new HashMap<>();
