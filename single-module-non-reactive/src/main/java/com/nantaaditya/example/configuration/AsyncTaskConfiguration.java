@@ -2,19 +2,38 @@ package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.task.TaskExecutor;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class AsyncTaskConfiguration {
 
-  @Bean("defaultAsyncTaskExecutor")
-  @ConditionalOnMissingBean(TaskExecutor.class)
-  public ThreadPoolTaskExecutor defaultAsyncTaskExecutor(AsyncTaskProperties asyncTaskProperties) {
-    return createAsyncExecutor(asyncTaskProperties.getConfiguration("default"));
+  private final AsyncTaskProperties asyncProperties;
+  private final GenericWebApplicationContext applicationContext;
+
+  private static final String POSTFIX_BEAN_NAME = "AsyncTaskExecutor";
+
+  @EventListener(ApplicationReadyEvent.class)
+  public void onStart() {
+    if (asyncProperties.configurations() == null || asyncProperties.configurations().isEmpty()) {
+      log.warn("#AsyncExecutor - no bean defined");
+      return;
+    }
+
+    asyncProperties.configurations()
+      .forEach((key, value) -> applicationContext.registerBean(
+          key + POSTFIX_BEAN_NAME,
+          ThreadPoolTaskExecutor.class,
+          () -> createAsyncExecutor(asyncProperties.getConfiguration(key))
+          )
+      );
   }
 
   private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration) {
