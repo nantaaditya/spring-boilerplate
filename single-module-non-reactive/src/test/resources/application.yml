@@ -73,3 +73,10 @@ apps:
     sensitive-field: x-client-id
   swagger:
     host: http://localhost
+  retry.configurations:
+    default:
+      type: EXPONENTIAL_RANDOM
+      initial-interval: 1500
+      multiplier: 2.0
+      max-interval: 12000
+      max-attempt: 3

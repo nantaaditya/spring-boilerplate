@@ -143,7 +143,7 @@ public class SwaggerConfiguration {
     Server server = new Server();
 
     StringBuilder sb = new StringBuilder();
-    sb.append(swaggerProperties.getHost());
+    sb.append(swaggerProperties.host());
     sb.append(":" + port);
     if (contextPath != null || !contextPath.isEmpty()) {
       sb.append(contextPath);
