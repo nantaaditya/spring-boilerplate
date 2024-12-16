@@ -36,7 +36,7 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     HttpExchange.Request request = trace.getRequest();
     HttpExchange.Response response = trace.getResponse();
 
-    if (!logProperties.isEnableTraceLog() || logProperties.isIgnoredTraceLogPath(request.getUri().getPath())) {
+    if (!logProperties.enableTraceLog() || logProperties.isIgnoredTraceLogPath(request.getUri().getPath())) {
       ContextHelper.cleanUp();
       return;
     }

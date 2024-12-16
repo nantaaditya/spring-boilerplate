@@ -1,21 +1,18 @@
 package com.nantaaditya.example.properties;
 
+import com.nantaaditya.example.helper.StringHelper;
 import java.util.HashSet;
-import java.util.Set;
-import java.util.StringTokenizer;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.AntPathMatcher;
 
 @Slf4j
-@Data
 @ConfigurationProperties(value = "apps.log")
-@SuppressWarnings("java:S1068")
-public class LogProperties {
-  private boolean enableTraceLog;
-  private String ignoredTraceLogPath;
-  private String sensitiveField;
+public record LogProperties(
+    boolean enableTraceLog,
+    String ignoredTraceLogPath,
+    String sensitiveField
+) {
 
   private static final AntPathMatcher matcher = new AntPathMatcher();
 
@@ -24,7 +21,7 @@ public class LogProperties {
       return false;
     }
 
-    return toCollections(sensitiveField)
+    return StringHelper.toCollection(sensitiveField, ",", HashSet.class)
         .stream()
         .anyMatch(field -> field.equals(key));
   }
@@ -33,21 +30,8 @@ public class LogProperties {
     if (ignoredTraceLogPath == null || ignoredTraceLogPath.isEmpty())
       return false;
 
-    return toCollections(ignoredTraceLogPath)
+    return StringHelper.toCollection(ignoredTraceLogPath, ",", HashSet.class)
         .stream()
         .anyMatch(ignoredPath -> matcher.match(ignoredPath, path));
-  }
-
-  public Set<String> toCollections(String fields) {
-    Set<String> collections = new HashSet<>();
-
-    if (fields == null || fields.isEmpty()) return collections;
-
-    StringTokenizer tokenizer = new StringTokenizer(fields, ",");
-    while (tokenizer.hasMoreTokens()) {
-      collections.add(tokenizer.nextToken());
-    }
-    log.debug("#Converter - String field to collections {}", collections);
-    return collections;
   }
 }

@@ -76,3 +76,11 @@ apps:
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
+  retry.configurations:
+    default:
+      type: ${DEFAULT_RETRY_TYPE:EXPONENTIAL_RANDOM}
+      initial-interval: ${DEFAULT_RETRY_INITIAL_INTERVAL:1500}
+      multiplier: ${DEFAULT_RETRY_MULTIPLIER:2.0}
+      max-interval: ${DEFAULT_RETRY_MAX_INTERVAL:12000}
+      max-attempt: ${DEFAULT_RETRY_MAX_ATTEMPT:3}
+      retryable-exceptions: ${DEFAULT_RETRY_EXCEPTIONS:java.lang.IllegalArgumentException:true}
