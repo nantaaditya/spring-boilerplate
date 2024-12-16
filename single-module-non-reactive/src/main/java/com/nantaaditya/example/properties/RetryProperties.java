@@ -1,0 +1,15 @@
+package com.nantaaditya.example.properties;
+
+import com.nantaaditya.example.properties.embedded.RetryConfiguration;
+import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties("apps.retry")
+public record RetryProperties(
+    Map<String, RetryConfiguration> configurations
+) {
+
+  public RetryConfiguration get(String retryKey) {
+    return configurations.get(retryKey);
+  }
+}
