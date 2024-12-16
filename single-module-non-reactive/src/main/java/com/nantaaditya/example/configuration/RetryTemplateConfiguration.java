@@ -6,16 +6,19 @@ import com.nantaaditya.example.properties.RetryProperties;
 import com.nantaaditya.example.properties.embedded.RetryConfiguration;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.backoff.UniformRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class RetryTemplateConfiguration {
@@ -23,11 +26,24 @@ public class RetryTemplateConfiguration {
   private final ObjectMapper objectMapper;
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final RetryProperties retryProperties;
+  private final GenericWebApplicationContext applicationContext;
 
-  @Bean("defaultRetryTemplate")
-  @ConditionalOnMissingBean(RetryTemplate.class)
-  public RetryTemplate defaultRetryTemplate() {
-    return createRetryTemplate("default", retryProperties.get("default"));
+  private static final String POSTFIX_BEAN_NAME = "RetryTemplate";
+
+  @EventListener(ApplicationReadyEvent.class)
+  public void onStart() {
+    if (retryProperties.configurations() == null || retryProperties.configurations().isEmpty()) {
+      log.warn("#Retry - no bean defined");
+      return;
+    }
+
+    retryProperties.configurations()
+      .forEach(
+        (key, value) -> applicationContext.registerBean(
+        key + POSTFIX_BEAN_NAME,
+          RetryTemplate.class,
+            () -> createRetryTemplate(key, retryProperties.get(key)))
+      );
   }
 
   public RetryTemplate createRetryTemplate(String name, RetryConfiguration configuration) {
@@ -72,4 +88,6 @@ public class RetryTemplateConfiguration {
       }
     }
   }
+
+
 }
