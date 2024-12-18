@@ -4,7 +4,6 @@ this module include several capabilities:
 - save request on each endpoint call to event_log table
 - endpoint to run schema migration manually
 - endpoint to remove obsolete event_log
-- endpoint to remove obsolete dead_letter_process
 - masking sensitive PII data on log
 - response time tracing on each endpoint call on log
 - segregate log for apps, metrics, response time, and error
@@ -61,10 +60,7 @@ If you want to disable on startup time and want to run it manually, just change 
 So you can execute REST Api call on this endpoint `/internal-api/database`.
 
 ### endpoint to remove obsolete event_log
-If at some point your event_log grow bigger, you can easily remove obsolete event log on this endpoint `/internal-api/event_log?days=30`
-
-### endpoint to remove obsolete dead_letter_process
-If at some point your dead_letter_process grow bigger, you can easily remove obsolete event log on this endpoint `/internal-api/internal-api/dead_letter_process?days=30`
+If at some point your event_log grow bigger, you can easily remove obsolete event log on this endpoint `/internal-api/event_log/{day}`
 
 ### masking sensitive PII data on log
 This feature masking log on external client call using rest client.
