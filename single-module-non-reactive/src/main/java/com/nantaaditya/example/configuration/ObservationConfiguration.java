@@ -1,7 +1,6 @@
 package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.listener.AppObservationListener;
-import io.micrometer.observation.Observation.Context;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
 import org.springframework.context.annotation.Bean;
