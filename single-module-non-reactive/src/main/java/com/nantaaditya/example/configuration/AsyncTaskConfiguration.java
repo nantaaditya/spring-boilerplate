@@ -31,7 +31,8 @@ public class AsyncTaskConfiguration {
       .forEach((key, value) -> applicationContext.registerBean(
           key + POSTFIX_BEAN_NAME,
           ThreadPoolTaskExecutor.class,
-          () -> createAsyncExecutor(asyncProperties.getConfiguration(key))
+          () -> createAsyncExecutor(asyncProperties.getConfiguration(key)),
+          (defined) -> defined.setLazyInit(true)
           )
       );
   }

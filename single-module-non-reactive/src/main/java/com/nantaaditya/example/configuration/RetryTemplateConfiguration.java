@@ -42,7 +42,9 @@ public class RetryTemplateConfiguration {
         (key, value) -> applicationContext.registerBean(
         key + POSTFIX_BEAN_NAME,
           RetryTemplate.class,
-            () -> createRetryTemplate(key, retryProperties.get(key)))
+          () -> createRetryTemplate(key, retryProperties.get(key)),
+          (defined) -> defined.setLazyInit(true)
+        )
       );
   }
 
