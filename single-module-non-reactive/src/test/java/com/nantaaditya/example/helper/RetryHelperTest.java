@@ -9,6 +9,7 @@ import com.nantaaditya.example.model.constant.BackoffPolicyConstant;
 import com.nantaaditya.example.properties.embedded.RetryConfiguration;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +18,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
+@Order(1)
 class RetryHelperTest extends BaseIntegrationTest {
 
   @Autowired

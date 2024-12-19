@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 
+import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.model.response.Response;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import org.junit.jupiter.api.Test;
@@ -31,5 +32,19 @@ class DeadLetterProcessControllerTest {
     assertTrue(result.getData());
 
     verify(deadLetterProcessService).remove(30);
+  }
+
+  @Test
+  void retry() {
+    RetryDeadLetterProcessRequest request = new RetryDeadLetterProcessRequest(
+        "type", "name", 1
+    );
+    doNothing().when(deadLetterProcessService).retry(request);
+
+    Response<Boolean> result = deadLetterProcessController.retry(request);
+    assertNotNull(result);
+    assertTrue(result.getData());
+
+    verify(deadLetterProcessService).retry(request);
   }
 }
