@@ -10,7 +10,7 @@ public abstract class AbstractRetryProcessorService {
 
   protected DeadLetterProcessRepository deadLetterProcessRepository;
 
-  public AbstractRetryProcessorService(DeadLetterProcessRepository deadLetterProcessRepository) {
+  protected AbstractRetryProcessorService(DeadLetterProcessRepository deadLetterProcessRepository) {
     this.deadLetterProcessRepository = deadLetterProcessRepository;
   }
 

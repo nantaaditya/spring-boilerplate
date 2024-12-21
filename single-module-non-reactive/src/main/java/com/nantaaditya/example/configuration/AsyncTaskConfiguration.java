@@ -32,7 +32,7 @@ public class AsyncTaskConfiguration {
           key + POSTFIX_BEAN_NAME,
           ThreadPoolTaskExecutor.class,
           () -> createAsyncExecutor(asyncProperties.getConfiguration(key)),
-          (definition) -> definition.setLazyInit(true)
+          definition -> definition.setLazyInit(true)
           )
       );
   }

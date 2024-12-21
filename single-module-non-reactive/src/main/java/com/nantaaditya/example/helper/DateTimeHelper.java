@@ -1,5 +1,6 @@
 package com.nantaaditya.example.helper;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DateTimeHelper {
 
   public static final String ISO_8601_GMT7_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+  public static final ZoneId ZONE_ID = ZoneId.systemDefault();
 
   private DateTimeHelper() {}
 

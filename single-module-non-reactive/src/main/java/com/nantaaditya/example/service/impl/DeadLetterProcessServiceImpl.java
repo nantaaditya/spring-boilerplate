@@ -1,13 +1,13 @@
 package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
+import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,7 +35,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   public void remove(int days) {
     LocalDateTime now = LocalDateTime.now();
     deadLetterProcessRepository.deleteByCreatedDateLessThan(now.minusDays(days)
-        .atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
+        .atZone(DateTimeHelper.ZONE_ID).toInstant().toEpochMilli());
   }
 
   @Override
