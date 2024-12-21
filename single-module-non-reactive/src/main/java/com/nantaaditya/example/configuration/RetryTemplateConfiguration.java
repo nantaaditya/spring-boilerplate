@@ -43,7 +43,7 @@ public class RetryTemplateConfiguration {
         key + POSTFIX_BEAN_NAME,
           RetryTemplate.class,
           () -> createRetryTemplate(key, retryProperties.get(key)),
-          (definition) -> definition.setLazyInit(true)
+          definition -> definition.setLazyInit(true)
         )
       );
   }

@@ -29,7 +29,7 @@ public class StringHelper {
       return collections;
     } catch (InstantiationException | IllegalAccessException
              | NoSuchMethodException | InvocationTargetException e) {
-      throw new RuntimeException("Error creating collection instance", e);
+      throw new IllegalArgumentException("#Converter - error creating collection instance", e);
     }
   }
 }
