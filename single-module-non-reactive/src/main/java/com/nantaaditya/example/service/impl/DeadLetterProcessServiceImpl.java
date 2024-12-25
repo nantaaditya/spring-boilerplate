@@ -5,7 +5,6 @@ import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import java.time.LocalDateTime;
 import java.util.List;

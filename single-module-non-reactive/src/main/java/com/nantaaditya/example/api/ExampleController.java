@@ -1,8 +1,10 @@
 package com.nantaaditya.example.api;
 
+import com.nantaaditya.example.client.MockClient;
 import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.request.ExampleRequest;
 import com.nantaaditya.example.model.response.ExampleResponse;
+import com.nantaaditya.example.model.response.MockClientResponse;
 import com.nantaaditya.example.model.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExampleController {
 
   private final ObservationHelper observationHelper;
+  private final MockClient mockClient;
 
   @GetMapping(
       produces = MediaType.APPLICATION_JSON_VALUE
@@ -39,5 +42,13 @@ public class ExampleController {
       ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
       return Response.success(exampleResponse);
     });
+  }
+
+  @GetMapping(
+      value = "/mock",
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public Response<MockClientResponse> getMock() {
+    return Response.success(mockClient.getMock());
   }
 }

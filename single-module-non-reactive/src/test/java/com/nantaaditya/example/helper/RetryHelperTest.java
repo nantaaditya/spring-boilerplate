@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.context.support.GenericWebApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 @Order(1)
@@ -25,7 +24,7 @@ class RetryHelperTest extends BaseIntegrationTest {
   private RetryTemplateConfiguration retryTemplateConfiguration;
 
   @Autowired
-  private GenericWebApplicationContext applicationContext;
+  private RetryTemplateHelper retryTemplateHelper;
 
   private RetryConfiguration retryConfiguration;
   private RetryTemplate retryTemplate;
@@ -122,6 +121,6 @@ class RetryHelperTest extends BaseIntegrationTest {
 
   @Test
   void assertBeanCreation() {
-    assertNotNull(applicationContext.getBean("defaultRetryTemplate", RetryTemplate.class));
+    assertNotNull(retryTemplateHelper.getRetryTemplate("default"));
   }
 }

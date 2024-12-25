@@ -46,4 +46,11 @@ public class ExampleApiTest extends BaseIntegrationTest {
     ResultActions result = send(HttpMethod.POST, "/api/example", request);
     assertResult(result, HttpStatus.OK, ResponseCode.SUCCESS, jsonPath("$.data.name", equalTo("name")));
   }
+
+  @Test
+  @Order(3)
+  void getMock_success() {
+    ResultActions result = send(HttpMethod.GET, "/api/example/mock", null);
+    assertResult(result, HttpStatus.OK, ResponseCode.SUCCESS, jsonPath("$.data.completed", equalTo(false)));
+  }
 }

@@ -12,7 +12,6 @@ import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;

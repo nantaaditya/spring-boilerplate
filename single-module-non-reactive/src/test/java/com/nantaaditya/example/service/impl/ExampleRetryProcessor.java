@@ -2,7 +2,6 @@ package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

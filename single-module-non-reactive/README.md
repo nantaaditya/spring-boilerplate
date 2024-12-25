@@ -5,10 +5,12 @@ this module include several capabilities:
 - endpoint to run schema migration manually
 - endpoint to remove obsolete event_log
 - endpoint to remove obsolete dead_letter_process
+- endpoint to retry dead_letter_process
 - masking sensitive PII data on log
 - response time tracing on each endpoint call on log
 - segregate log for apps, metrics, response time, and error
 - retryable process based on retry policy
+- external client auto configuration
 - open-api & swagger
 - integration test
 
@@ -25,6 +27,8 @@ main java source code, consist of:
   this package for storing bean, helper, external library, etc configuration
 - ENTITY
   this package for storing entity, mapping between table on database and POJO class
+- FACTORY
+  this package for storing factory to create or store implementation of bean.
 - HELPER
   this package for storing helper
 - INTERCEPTOR
@@ -66,6 +70,43 @@ If at some point your event_log grow bigger, you can easily remove obsolete even
 ### endpoint to remove obsolete dead_letter_process
 If at some point your dead_letter_process grow bigger, you can easily remove obsolete event log on this endpoint `/internal-api/internal-api/dead_letter_process?days=30`
 
+### endpoint to retry dead_letter_process
+If you want to retry dead_letter_process, you can easily do it on this endpoint 
+```shell
+curl -XPOST -H "Content-type: application/json" \ 
+ -d '{"processType":"type","processName":"name","size":30}' \
+ 'http://localhost:8080/internal-api/dead_letter_process/_retry'
+```
+
+before that you need to create bean that extends `AbstractRetryProcessorService`
+
+```java
+@Service
+public class ExampleRetryProcessorService extends AbstractRetryProcessorService {
+
+  private DeadLetterProcessRepository deadLetterProcessRepository;
+
+  public ExampleRetryProcessorService(DeadLetterProcessRepository deadLetterProcessRepository) {
+    super(deadLetterProcessRepository);
+  }
+
+  @Override
+  public String getProcessType() {
+    return "type";
+  };
+  
+  @Override
+  public String getProcessName() {
+    return "name";
+  }
+  
+  @Override
+  protected void doProcess(DeadLetterProcess deadLetterProcess) {
+    // do something
+  }
+}
+```
+
 ### masking sensitive PII data on log
 This feature masking log on external client call using rest client.
 Add the sensitive data key on `apps.log.sensitive-field` props, it supports both headers and json payload.
@@ -82,7 +123,7 @@ By default, it will segregate log for apps, metrics, response time, and error.
 - for trace log: `${LOG_PATH}/trace.log`
 
 ### retryable process based on retry policy
-To use retry process, you need to create retry template bean and configuration properties
+To use retry process, you need to create on configuration properties
 
 - create retry configuration properties, `apps.retry.configurations.[retryKey]`, you need to define several props.
 
@@ -95,7 +136,7 @@ To use retry process, you need to create retry template bean and configuration p
 | max-attempt          | int                   | 0             | maximum retry attempt                                                                                                      |
 | retryable-exceptions | String                | null          | eligible exceptions to be retried, if not set it will retry all kind of exceptions. format: exception:true,exception:false |
 
-- by default, it will create `RetryTemplate` bean with name `retryKey` + `RetryTemplate`
+- by default, it will create `RetryTemplate` with name `{retryKey}` + `RetryTemplate`
 - use `RetryHelper` class to execute method that need to be retried
 
 ```java
@@ -104,8 +145,8 @@ public class ExampleRetry {
 
   private final RetryTemplate retryTemplate;
 
-  public ExampleRetry(@Qualifier("defaultRetryTemplate") RetryTemplate retryTemplate) {
-    this.retryTemplate = retryTemplate;
+  public ExampleRetry(RetryTemplateHelper retryTemplateHelper) {
+    this.retryTemplate = retryTemplateHelper.getRetryTemplate("default");
   }
 
   public String print(String request) {
@@ -122,6 +163,37 @@ public class ExampleRetry {
 ```
 
 - all exhausted retry process will be stored on dead_letter_process, later you can retry it manually
+
+### external client auto configuration
+this feature will autoconfigure external client using `apps.client.configurations.[clientName]` props.
+it also supports with retry policy, as long as the key between `apps.client.configurations.[clientName]` and `apps.retry.configurations.[retryKey]` is the same.
+to create external client, you need to create a bean like this example:
+
+```java
+@Component
+public class MockClient {
+
+  private RestSender restSender;
+
+  public MockClient(RestSenderHelper restSenderHelper) {
+    this.restSender = restSenderHelper.getRestSender("mock"); // get rest sender by name
+  }
+ 
+  public MockClientResponse getMock() {
+    MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+    return restSender.execute(
+        HttpMethod.GET,
+        "todos/1",
+        new HttpHeaders(headers),
+        null,
+        MockClientResponse.class
+      )
+        .getBody();
+  }
+}
+```
+
 
 ### open-api & swagger
 It will enable open-api and swagger by default on this endpoint `http://localhost:${PORT}/${CONTEXT_PATH}/swagger-ui/index.html`

@@ -1,7 +1,7 @@
 package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.factory.RetryProcessorHelperFactory;
-import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
+import com.nantaaditya.example.service.impl.AbstractRetryProcessorService;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
