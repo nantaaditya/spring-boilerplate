@@ -24,10 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.support.GenericApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
-class ClientBeanConfigurationTest {
+class RestClientBeanConfigurationTest {
 
   @InjectMocks
-  private ClientBeanConfiguration clientBeanConfiguration;
+  private RestClientBeanConfiguration restClientBeanConfiguration;
   @Mock
   private Gson gson;
   @Mock
@@ -52,14 +52,14 @@ class ClientBeanConfigurationTest {
     );
     lenient().when(clientProperties.pooling())
         .thenReturn(new ClientPoolingConfiguration(25, 5));
-    assertNotNull(clientBeanConfiguration.createRestClient(clientConfiguration));
+    assertNotNull(restClientBeanConfiguration.createRestClient(clientConfiguration));
   }
 
   @Test
   void restClientHelperFactory_null() {
     when(clientProperties.configurations())
         .thenReturn(null);
-    assertNotNull(clientBeanConfiguration.restClientHelperFactory());
+    assertNotNull(restClientBeanConfiguration.restClientHelperFactory());
     verify(clientProperties).configurations();
   }
 
@@ -67,7 +67,7 @@ class ClientBeanConfigurationTest {
   void restClientHelperFactory_empty() {
     when(clientProperties.configurations())
         .thenReturn(Collections.emptyMap());
-    assertNotNull(clientBeanConfiguration.restClientHelperFactory());
+    assertNotNull(restClientBeanConfiguration.restClientHelperFactory());
     verify(clientProperties, atLeast(1)).configurations();
   }
 }

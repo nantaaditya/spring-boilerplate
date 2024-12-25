@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
-@AutoConfigureAfter(value = {ClientBeanConfiguration.class, RetryTemplateConfiguration.class})
+@AutoConfigureAfter(value = {RestClientBeanConfiguration.class, RetryTemplateConfiguration.class})
 public class RestSenderConfiguration {
 
   private static final String POSTFIX_BEAN_NAME = "RestSender";

@@ -28,7 +28,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-public class ClientBeanConfiguration {
+public class RestClientBeanConfiguration {
 
   private final Gson gson;
   private final ClientProperties clientProperties;
