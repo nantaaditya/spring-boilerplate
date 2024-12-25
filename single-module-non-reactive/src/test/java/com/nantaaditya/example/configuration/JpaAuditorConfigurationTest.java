@@ -1,6 +1,6 @@
 package com.nantaaditya.example.configuration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.model.dto.ContextDTO;

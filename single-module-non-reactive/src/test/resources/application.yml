@@ -76,7 +76,19 @@ apps:
   retry.configurations:
     default:
       type: EXPONENTIAL_RANDOM
-      initial-interval: 1500
-      multiplier: 2.0
-      max-interval: 12000
+      initial-interval: 500
+      multiplier: 1.0
+      max-interval: 10000
       max-attempt: 3
+  client:
+    pooling:
+      maxTotal: 10
+      maxPerRoute: 5
+    configurations:
+      mock:
+        host: https://jsonplaceholder.typicode.com
+        timeOut:
+          connectTimeOut: 2000
+          readTimeOut: 2000
+          connectRequestTimeOut: 2000
+        enable-log: true

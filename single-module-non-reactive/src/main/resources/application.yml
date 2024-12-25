@@ -83,3 +83,16 @@ apps:
       max-interval: ${DEFAULT_RETRY_MAX_INTERVAL:12000}
       max-attempt: ${DEFAULT_RETRY_MAX_ATTEMPT:3}
       retryable-exceptions: ${DEFAULT_RETRY_EXCEPTIONS:java.lang.IllegalArgumentException:true}
+  client:
+    pooling:
+      maxTotal: ${DEFAULT_CLIENT_MAX_IDLE_CONNECTIONS:20}
+      maxPerRoute: ${DEFAULT_CLIENT_MAX_IDLE_CONNECTION_PER_ROUTE:5}
+    configurations:
+      mock:
+        host: ${MOCK_CLIENT_HOST:https://jsonplaceholder.typicode.com}
+        timeOut:
+          connectTimeOut: ${MOCK_CLIENT_CONNECT_TIMEOUT:2000}
+          readTimeOut: ${MOCK_CLIENT_READ_TIMEOUT:2000}
+          connectRequestTimeOut: ${MOCK_CLIENT_CONNECT_REQUEST_TIMEOUT:2000}
+        enable-log: true
+

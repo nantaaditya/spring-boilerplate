@@ -1,5 +1,7 @@
-package com.nantaaditya.example.client;
+package com.nantaaditya.example.helper;
 
+import com.nantaaditya.example.model.constant.RetryConstant;
+import com.nantaaditya.example.model.dto.ClientRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Set;
@@ -31,6 +33,19 @@ public class RestSender {
   }
 
   public <S, T> ResponseEntity<T> executeWithRetry(HttpMethod httpMethod, String apiPath,
+      HttpHeaders headers, S request, Class<T> responseType, String processName) {
+
+    if (retryTemplate == null) {
+      throw new IllegalArgumentException(String.format("#Client - [%s] retryTemplate not set", this.name));
+    }
+
+    return retryTemplate.execute(context -> call(
+        new ClientRequest<>(httpMethod, apiPath, null, headers, request,
+            responseType, context, processName)
+    ));
+  }
+
+  public <S, T> ResponseEntity<T> executeWithRetry(HttpMethod httpMethod, String apiPath,
       MultiValueMap<String, String> queryParams, HttpHeaders headers, S request,
       Class<T> responseType, String processName) {
 
@@ -38,55 +53,64 @@ public class RestSender {
       throw new IllegalArgumentException(String.format("#Client - [%s] retryTemplate not set", this.name));
     }
 
-    return retryTemplate.execute(context -> call(httpMethod, apiPath, queryParams, headers, request,
-        responseType, context, processName));
+    return retryTemplate.execute(context -> call(
+        new ClientRequest<>(httpMethod, apiPath, queryParams, headers, request,
+            responseType, context, processName)
+    ));
+  }
+
+  public <S, T> ResponseEntity<T> execute(HttpMethod httpMethod, String apiPath,
+      HttpHeaders headers, S request, Class<T> responseType) {
+    return call(new ClientRequest<>(httpMethod, apiPath, null, headers, request,
+        responseType, null, null));
   }
 
   public <S, T> ResponseEntity<T> execute(HttpMethod httpMethod, String apiPath,
       MultiValueMap<String, String> queryParams, HttpHeaders headers, S request,
       Class<T> responseType) {
 
-    return call(httpMethod, apiPath, queryParams, headers, request, responseType,
-        null, null);
+
+    return call(new ClientRequest<>(httpMethod, apiPath, queryParams, headers, request,
+        responseType, null, null));
   }
 
-  private <S, T> ResponseEntity<T> call(HttpMethod httpMethod, String apiPath,
-      MultiValueMap<String, String> queryParams, HttpHeaders headers, S request,
-      Class<T> responseType, RetryContext retryContext, String processName) {
+  // Base Method
+  private <S, T> ResponseEntity<T> call(ClientRequest<S, T> request) {
     try {
       RequestBodySpec requestBodySpec = restClient
-          .method(httpMethod)
+          .method(request.method())
           .uri(builder -> {
-            UriBuilder uriBuilder = builder.path(apiPath);
-            if (queryParams != null) {
-              uriBuilder = uriBuilder.queryParams(queryParams);
+            UriBuilder uriBuilder = builder.path(request.path());
+            if (request.queryParams() != null) {
+              uriBuilder = uriBuilder.queryParams(request.queryParams());
             }
             return uriBuilder.build();
           })
-          .headers(h -> h.putAll(headers));
+          .headers(h -> h.putAll(request.headers()));
 
-      if (ELIGIBLE_METHOD_WITH_PAYLOAD.contains(httpMethod)) {
+      if (ELIGIBLE_METHOD_WITH_PAYLOAD.contains(request.method())) {
         requestBodySpec = requestBodySpec.body(request);
       }
 
       return requestBodySpec
           .retrieve()
-          .toEntity(responseType);
+          .toEntity(request.responseType());
     } catch (Throwable ex) {
       log.error("#Client - [{}] has error, ", this.name, ex);
-      if (retryTemplate != null) setAttributeOnRetryContext(retryContext, request, processName, ex);
+      if (retryTemplate != null)
+        setAttributeOnRetryContext(request.retryContext(), request, request.processName(), ex);
       throw ex;
     }
   }
 
   private <S> void setAttributeOnRetryContext(RetryContext context, S request, String processName,
       Throwable e) {
-    context.setAttribute("request", request);
-    context.setAttribute("exception", e.getCause());
-    context.setAttribute("processType", "client");
-    context.setAttribute("processName", processName);
+    context.setAttribute(RetryConstant.REQUEST.getName(), request);
+    context.setAttribute(RetryConstant.EXCEPTION.getName(), e.getCause());
+    context.setAttribute(RetryConstant.PROCESS_TYPE.getName(), "client");
+    context.setAttribute(RetryConstant.PROCESS_NAME.getName(), processName);
     if (e instanceof RestClientResponseException ex) {
-      context.setAttribute("response", ex.getResponseBodyAsString());
+      context.setAttribute(RetryConstant.EXCEPTION.getName(), ex.getResponseBodyAsString());
     }
   }
 
@@ -97,7 +121,8 @@ public class RestSender {
 
     public Builder() {}
 
-    public Builder(@NotBlank(message = "NotBlank") String name,
+    public Builder(
+        @NotBlank(message = "NotBlank") String name,
         @NotNull(message = "NotNull") RestClient restClient) {
       this.name = name;
       this.restClient = restClient;
@@ -119,8 +144,10 @@ public class RestSender {
     }
 
     public RestSender build() {
-      if (name == null || name.isBlank()) throw new IllegalArgumentException("#Client - name should not null / blank");
-      if (restClient == null) throw new IllegalArgumentException("#Client - restClient should not null");
+      if (name == null || name.isBlank())
+        throw new IllegalArgumentException("#Client - name should not null / blank");
+      if (restClient == null)
+        throw new IllegalArgumentException("#Client - restClient should not null");
 
       return new RestSender(this);
     }

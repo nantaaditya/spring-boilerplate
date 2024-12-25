@@ -1,15 +1,13 @@
 package com.nantaaditya.example.factory;
 
 import com.nantaaditya.example.helper.RetryProcessorHelper;
-import com.nantaaditya.example.service.internal.AbstractRetryProcessorService;
+import com.nantaaditya.example.service.impl.AbstractRetryProcessorService;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.FactoryBean;
 
-@Slf4j
 @Setter
 public class RetryProcessorHelperFactory implements FactoryBean<RetryProcessorHelper> {
 

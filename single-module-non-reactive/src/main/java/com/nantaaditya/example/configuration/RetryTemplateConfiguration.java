@@ -1,22 +1,24 @@
 package com.nantaaditya.example.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nantaaditya.example.factory.RetryTemplateHelperFactory;
 import com.nantaaditya.example.listener.RetryTemplateListener;
 import com.nantaaditya.example.properties.RetryProperties;
 import com.nantaaditya.example.properties.embedded.RetryConfiguration;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.backoff.UniformRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.context.support.GenericWebApplicationContext;
 
 @Slf4j
 @Configuration
@@ -26,26 +28,31 @@ public class RetryTemplateConfiguration {
   private final ObjectMapper objectMapper;
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final RetryProperties retryProperties;
-  private final GenericWebApplicationContext applicationContext;
 
   private static final String POSTFIX_BEAN_NAME = "RetryTemplate";
 
-  @EventListener(ApplicationReadyEvent.class)
-  public void onStart() {
+  @Bean
+  public RetryTemplateHelperFactory retryTemplateHelperFactory() {
+    Map<String, RetryTemplate> retryTemplates = new HashMap<>();
+
+    RetryTemplateHelperFactory factory = new RetryTemplateHelperFactory();
     if (retryProperties.configurations() == null || retryProperties.configurations().isEmpty()) {
       log.warn("#Retry - no bean defined");
-      return;
+      factory.setRetryTemplates(retryTemplates);
+      return factory;
     }
 
-    retryProperties.configurations()
-      .forEach(
-        (key, value) -> applicationContext.registerBean(
-        key + POSTFIX_BEAN_NAME,
-          RetryTemplate.class,
-          () -> createRetryTemplate(key, retryProperties.get(key)),
-          definition -> definition.setLazyInit(true)
-        )
-      );
+    retryTemplates.putAll(retryProperties.configurations()
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey() + POSTFIX_BEAN_NAME,
+            e -> createRetryTemplate(e.getKey(), retryProperties.get(e.getKey()))
+        ))
+    );
+    factory.setRetryTemplates(retryTemplates);
+    log.debug("#Retry - [{}] created", retryProperties.getBeanNames(POSTFIX_BEAN_NAME));
+    return factory;
   }
 
   public RetryTemplate createRetryTemplate(String name, RetryConfiguration configuration) {

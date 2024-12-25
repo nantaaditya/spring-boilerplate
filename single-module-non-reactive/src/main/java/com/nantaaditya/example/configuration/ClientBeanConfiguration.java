@@ -1,6 +1,7 @@
 package com.nantaaditya.example.configuration;
 
 import com.google.gson.Gson;
+import com.nantaaditya.example.factory.RestClientHelperFactory;
 import com.nantaaditya.example.interceptor.ClientLogInterceptor;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
@@ -9,16 +10,17 @@ import com.nantaaditya.example.properties.embedded.ClientPoolingConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientProxyConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientTimeOutConfiguration;
 import io.micrometer.observation.ObservationRegistry;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.HttpHost;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
-import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
@@ -32,26 +34,31 @@ public class ClientBeanConfiguration {
   private final ClientProperties clientProperties;
   private final LogProperties logProperties;
   private final ObservationRegistry observationRegistry;
-  private final GenericApplicationContext applicationContext;
 
-  private static final String POSTFIX_BEAN_NAME = "Client";
+  private static final String POSTFIX_BEAN_NAME = "RestClient";
 
-  @EventListener(ApplicationReadyEvent.class)
-  public void onStart() {
+  @Bean
+  public RestClientHelperFactory restClientHelperFactory() {
+    Map<String, RestClient> restClients = new HashMap<>();
+
+    RestClientHelperFactory factory = new RestClientHelperFactory();
     if (clientProperties.configurations() == null || clientProperties.configurations().isEmpty()) {
       log.warn("#Client - no bean defined");
-      return;
+      factory.setRestClients(restClients);
+      return factory;
     }
 
-    clientProperties.configurations()
-        .forEach((key, value) -> applicationContext.registerBean(
-            key + POSTFIX_BEAN_NAME,
-            RestClient.class,
-            () -> createRestClient(clientProperties.getClientConfiguration(key)).build(),
-            definition -> definition.setLazyInit(true)
-        ));
-
-    log.debug("#Client - bean {} created", clientProperties.getBeanNames(POSTFIX_BEAN_NAME));
+    restClients.putAll(clientProperties.configurations()
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey() + POSTFIX_BEAN_NAME,
+            e -> createRestClient(clientProperties.getClientConfiguration(e.getKey())).build())
+        )
+    );
+    factory.setRestClients(restClients);
+    log.debug("#Client - [{}] created", clientProperties.getBeanNames(POSTFIX_BEAN_NAME));
+    return factory;
   }
 
   public RestClient.Builder createRestClient(ClientConfiguration clientConfiguration) {
@@ -70,6 +77,7 @@ public class ClientBeanConfiguration {
 
     return RestClient
         .builder(restTemplate)
+        .baseUrl(clientConfiguration.host())
         .observationRegistry(observationRegistry);
   }
 

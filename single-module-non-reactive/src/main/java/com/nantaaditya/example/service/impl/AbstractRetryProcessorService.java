@@ -1,4 +1,4 @@
-package com.nantaaditya.example.service.internal;
+package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
