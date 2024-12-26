@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.gson.Gson;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import com.nantaaditya.example.properties.LogProperties;
@@ -31,9 +32,12 @@ class EventLogInterceptorTest {
   @Mock
   private HttpServletResponse response;
 
+  @Mock
+  private Gson gson;
+
   @Test
   void afterCompletion_null() throws Exception {
-    EventLogInterceptor interceptor = new EventLogInterceptor(eventLogRepository, logProperties);
+    EventLogInterceptor interceptor = new EventLogInterceptor(eventLogRepository, logProperties, gson);
 
     interceptor.afterCompletion(request, response, null, null);
   }
@@ -49,7 +53,7 @@ class EventLogInterceptorTest {
     ));
 
     when(logProperties.isIgnoredTraceLogPath(anyString())).thenReturn(true);
-    EventLogInterceptor interceptor = new EventLogInterceptor(eventLogRepository, logProperties);
+    EventLogInterceptor interceptor = new EventLogInterceptor(eventLogRepository, logProperties, gson);
 
     interceptor.afterCompletion(request, response, null, null);
     verify(logProperties).isIgnoredTraceLogPath(anyString());
