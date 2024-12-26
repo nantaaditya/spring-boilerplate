@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS event_logs (
     path text,
     response_code varchar(5),
     response_description text,
+    payload bytea,
     additional_data bytea,
     created_date timestamp
 );

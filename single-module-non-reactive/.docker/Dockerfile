@@ -35,6 +35,7 @@ RUN mkdir app/resources-patch
 ADD src/main/resources app/resources
 ADD target/*.jar app/lib/
 ADD target/dependency/*.jar app/lib/
+ADD pom.xml app/pom.xml
 
 WORKDIR /app
 

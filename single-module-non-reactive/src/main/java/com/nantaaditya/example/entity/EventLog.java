@@ -34,6 +34,8 @@ public class EventLog {
   private String responseCode;
   private String responseDescription;
   @Column(columnDefinition = "bytea")
+  private byte[] payload;
+  @Column(columnDefinition = "bytea")
   private byte[] additionalData;
   @CreatedDate
   private LocalDateTime createdDate;

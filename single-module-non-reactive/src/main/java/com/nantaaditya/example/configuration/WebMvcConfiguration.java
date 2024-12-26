@@ -1,5 +1,6 @@
 package com.nantaaditya.example.configuration;
 
+import com.google.gson.Gson;
 import com.nantaaditya.example.interceptor.EventLogInterceptor;
 import com.nantaaditya.example.properties.LogProperties;
 import com.nantaaditya.example.repository.EventLogRepository;
@@ -17,11 +18,12 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
 
   private final EventLogRepository eventLogRepository;
   private final LogProperties logProperties;
+  private final Gson gson;
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
     registry
-        .addInterceptor(new EventLogInterceptor(eventLogRepository, logProperties))
+        .addInterceptor(new EventLogInterceptor(eventLogRepository, logProperties, gson))
         .order(Ordered.LOWEST_PRECEDENCE);
   }
 }

@@ -45,7 +45,7 @@ class RetryHelperTest extends BaseIntegrationTest {
     retryConfiguration = new RetryConfiguration(
         BackoffPolicyConstant.EXPONENTIAL,
         1000,
-        2.0,
+        0.2,
         10000,
         3,
         "java.lang.IllegalArgumentException:true"
@@ -64,8 +64,8 @@ class RetryHelperTest extends BaseIntegrationTest {
     retryConfiguration = new RetryConfiguration(
         BackoffPolicyConstant.EXPONENTIAL,
         1000,
-        2.0,
-        10000,
+        0.2,
+        1000,
         3,
         "java.lang.IllegalArgumentException:true"
     );
@@ -78,9 +78,9 @@ class RetryHelperTest extends BaseIntegrationTest {
   void execute_retryFixed() {
     retryConfiguration = new RetryConfiguration(
         BackoffPolicyConstant.FIXED,
+        100,
+        0.2,
         1000,
-        2.0,
-        10000,
         3,
         "java.lang.IllegalArgumentException:true"
     );
@@ -93,9 +93,9 @@ class RetryHelperTest extends BaseIntegrationTest {
   void execute_retryUniformRandom() {
     retryConfiguration = new RetryConfiguration(
         BackoffPolicyConstant.UNIFORM_RANDOM,
+        100,
+        0.2,
         1000,
-        2.0,
-        10000,
         3,
         "java.lang.IllegalArgumentException:true"
     );
@@ -108,9 +108,9 @@ class RetryHelperTest extends BaseIntegrationTest {
   void execute_retryExponentialRandom() {
     retryConfiguration = new RetryConfiguration(
         BackoffPolicyConstant.EXPONENTIAL_RANDOM,
+        100,
+        0.2,
         1000,
-        2.0,
-        10000,
         3,
         "java.lang.IllegalArgumentException:true"
     );
