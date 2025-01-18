@@ -38,6 +38,8 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
+     serialization:
+      fail-on-empty-beans: false
 
 logging:
   level:
@@ -46,6 +48,8 @@ logging:
     org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
   file.path: ${LOG_PATH:.logs/}
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{reqId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
