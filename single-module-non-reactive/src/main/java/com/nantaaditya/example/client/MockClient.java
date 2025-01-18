@@ -24,7 +24,7 @@ public class MockClient {
     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
     return restSender.execute(
         HttpMethod.GET,
-        "todos/1",
+        "/todos/1",
         new HttpHeaders(headers),
         null,
         MockClientResponse.class
