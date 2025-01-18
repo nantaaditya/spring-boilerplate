@@ -3,16 +3,16 @@
   <include resource="org/springframework/boot/logging/logback/defaults.xml" />
   <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
 
-  <springProperty name="APP_NAME" source="spring.application.name" defaultValue="apps" />
-  <springProperty name="LOG_PATH" source="logging.file.path" defaultValue=".logs/"/>
-  <springProperty name="ROOT_LOG_LEVEL" source="logging.level.root" />
+  <springProperty name="APP_NAME" source="spring.application.name" defaultValue="apps" scope="context"/>
+  <springProperty name="LOG_PATH" source="logging.file.path" defaultValue=".logs/" scope="context"/>
+  <springProperty name="ROOT_LOG_LEVEL" source="logging.level.root" scope="context"/>
 
   <appender name="appLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${LOG_PATH}/apps.log</file>
+    <file>${LOG_PATH}/${APP_NAME}.log</file>
     <rollingPolicy
       class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>apps.%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>30</maxHistory>
+      <maxHistory>14</maxHistory>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
@@ -32,7 +32,7 @@
     <rollingPolicy
       class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>metrics.%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>30</maxHistory>
+      <maxHistory>7</maxHistory>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
@@ -52,7 +52,7 @@
     <rollingPolicy
       class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>error.%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>30</maxHistory>
+      <maxHistory>14</maxHistory>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
@@ -72,7 +72,7 @@
     <rollingPolicy
       class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>trace.%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>30</maxHistory>
+      <maxHistory>7</maxHistory>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">

@@ -34,15 +34,21 @@ spring:
     hibernate:
       ddl-auto: create-drop
     properties:
-      hibernate.format_sql: true
+      hibernate:
+        format_sql: true
+        show_sql: true
+    defer-datasource-initialization: true
 
 logging:
   level:
     root: INFO
     org.springframework: INFO
-    org.hibernate: INFO
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.type: TRACE
     com.nantaaditya: INFO
-  file.name: /example-app.log
+  file.path: .logs/
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{reqId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
 
 management:
   server.port: 1001
