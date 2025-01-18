@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StringHelper {
 
-  private static final String CONVERTER_FIELD_TO_COLLECTION_MESSAGE = "#Converter - String field to collections {}";
-
   private StringHelper() {}
 
   public static Collection<String> toCollection(String fields, String delimiter,
@@ -25,7 +23,6 @@ public class StringHelper {
       while (tokenizer.hasMoreTokens()) {
         collections.add(tokenizer.nextToken());
       }
-      log.debug(CONVERTER_FIELD_TO_COLLECTION_MESSAGE, collections);
       return collections;
     } catch (InstantiationException | IllegalAccessException
              | NoSuchMethodException | InvocationTargetException e) {

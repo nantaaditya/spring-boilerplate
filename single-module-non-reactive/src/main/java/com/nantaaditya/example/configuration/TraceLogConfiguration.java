@@ -10,19 +10,19 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange;
 import org.springframework.boot.actuate.web.exchanges.HttpExchangeRepository;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class TraceLogConfiguration implements HttpExchangeRepository {
 
-  @Autowired
-  private LogProperties logProperties;
-  private AtomicReference<HttpExchange> httpTrace = new AtomicReference<>();
+  private final LogProperties logProperties;
+  private final AtomicReference<HttpExchange> httpTrace = new AtomicReference<>();
 
   private static final String BREAKPOINT = "\n";
 
@@ -36,7 +36,12 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     HttpExchange.Request request = trace.getRequest();
     HttpExchange.Response response = trace.getResponse();
 
-    if (!logProperties.enableTraceLog() || logProperties.isIgnoredTraceLogPath(request.getUri().getPath())) {
+    if (!logProperties.enableTraceLog()) {
+      ContextHelper.cleanUp();
+      return;
+    }
+
+    if (logProperties.isIgnoredTraceLogPath(request.getUri().getPath())) {
       ContextHelper.cleanUp();
       return;
     }
@@ -46,7 +51,9 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     logContent
         .append(request.getMethod())
         .append(" ")
-        .append(request.getUri().getPath());
+        .append((request.getUri().getRawQuery() != null ) ?
+            request.getUri().getPath().concat("?").concat(request.getUri().getRawQuery())
+            : request.getUri().getPath());
     logContent.append(BREAKPOINT);
     logContent
         .append("http status: [")
@@ -57,16 +64,19 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
         .append("] ms")
         .append(BREAKPOINT);
 
-    for (Entry<String, List<String>> headers : request.getHeaders().entrySet()) {
+    for (Entry<String, List<String>> headers : response.getHeaders().entrySet()) {
       if (isInternalHeader(headers.getKey())) {
         maskHeader(logContent, headers);
       }
     }
 
     log.info(logContent.toString());
-    httpTrace.set(trace);
-
     ContextHelper.cleanUp();
+  }
+
+  private boolean isInternalHeader(String headerKey) {
+    return Stream.of(HeaderConstant.values())
+        .anyMatch(h -> h.getHeader().equals(headerKey));
   }
 
   private void maskHeader(StringBuilder logContent, Entry<String, List<String>> headers) {
@@ -74,13 +84,8 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
         .append(headers.getKey())
         .append(": ")
         .append(logProperties.isSensitiveField(headers.getKey()) ?
-          headers.getValue().stream().map(MaskingHelper::masking).toList()  : headers.getValue()
+            headers.getValue().stream().map(MaskingHelper::masking).toList()  : headers.getValue()
         )
         .append(BREAKPOINT);
-  }
-
-  private boolean isInternalHeader(String headerKey) {
-    return Stream.of(HeaderConstant.values())
-        .anyMatch(h -> h.getHeader().equals(headerKey));
   }
 }

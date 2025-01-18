@@ -19,10 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.HttpHost;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -38,8 +38,8 @@ public class RestClientBeanConfiguration {
   private static final String POSTFIX_BEAN_NAME = "RestClient";
 
   @Bean
-  public RestClientHelperFactory restClientHelperFactory() {
-    Map<String, RestClient> restClients = new HashMap<>();
+  public RestClientHelperFactory restClientHelperFactory(RestTemplateBuilder builder) {
+    Map<String, RestTemplate> restClients = new HashMap<>();
 
     RestClientHelperFactory factory = new RestClientHelperFactory();
     if (clientProperties.configurations() == null || clientProperties.configurations().isEmpty()) {
@@ -53,7 +53,7 @@ public class RestClientBeanConfiguration {
         .stream()
         .collect(Collectors.toMap(
             e -> e.getKey() + POSTFIX_BEAN_NAME,
-            e -> createRestClient(clientProperties.getClientConfiguration(e.getKey())).build())
+            e -> createRestClient(builder, clientProperties.getClientConfiguration(e.getKey())))
         )
     );
     factory.setRestClients(restClients);
@@ -61,7 +61,7 @@ public class RestClientBeanConfiguration {
     return factory;
   }
 
-  public RestClient.Builder createRestClient(ClientConfiguration clientConfiguration) {
+  public RestTemplate createRestClient(RestTemplateBuilder builder, ClientConfiguration clientConfiguration) {
     HttpClientBuilder httpClient = getHttpClientBuilder(clientConfiguration);
 
     ClientTimeOutConfiguration timeOutConfiguration = clientConfiguration.timeOut();
@@ -70,15 +70,16 @@ public class RestClientBeanConfiguration {
     httpRequestFactory.setConnectTimeout(timeOutConfiguration.connectTimeOut());
     httpRequestFactory.setReadTimeout(timeOutConfiguration.readTimeOut());
 
-    RestTemplate restTemplate = new RestTemplate(httpRequestFactory);
+    RestTemplate restTemplate = builder
+        .requestFactory(() -> httpRequestFactory)
+        .rootUri(clientConfiguration.host())
+        .build();
     if (clientConfiguration.enableLog()) {
       restTemplate.setInterceptors(List.of(new ClientLogInterceptor(gson, logProperties)));
     }
 
-    return RestClient
-        .builder(restTemplate)
-        .baseUrl(clientConfiguration.host())
-        .observationRegistry(observationRegistry);
+    restTemplate.setObservationRegistry(observationRegistry);
+    return restTemplate;
   }
 
   private HttpClientBuilder getHttpClientBuilder(ClientConfiguration clientConfiguration) {
