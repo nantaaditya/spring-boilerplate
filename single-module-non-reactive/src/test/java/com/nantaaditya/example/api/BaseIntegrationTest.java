@@ -11,11 +11,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.TsidHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Set;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -96,8 +100,31 @@ public abstract class BaseIntegrationTest {
   }
 
   @SneakyThrows
+  protected void mock(HttpMethod httpMethod, String path, HttpStatus httpStatus, Object response, int delay) {
+    ResponseDefinitionBuilder responseDefinitionBuilder = WireMock.aResponse()
+        .withStatus(httpStatus.value())
+        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .withHeader(HttpHeaders.CONNECTION, "close")
+        .withBody(objectMapper.writeValueAsString(response));
+
+    if (delay>0) {
+      responseDefinitionBuilder = responseDefinitionBuilder.withFixedDelay(delay);
+    }
+
+    WireMock.stubFor(
+        WireMock.request(
+                httpMethod.toString(),
+                WireMock.urlEqualTo(path)
+            )
+            .willReturn(
+                responseDefinitionBuilder
+            )
+    );
+  }
+
+  @SneakyThrows
   protected void assertResult(ResultActions resultActions, HttpStatus httpStatus,
-      ResponseCode responseCode, ResultMatcher dataResultMatcher) {
+      ResponseCode responseCode, ResultMatcher... dataResultMatcher) {
 
     MockHttpServletResponse response = resultActions.andReturn().getResponse();
     StringBuilder logConstant = new StringBuilder(String.format("#Response - [%s]", response.getStatus()));
@@ -112,7 +139,7 @@ public abstract class BaseIntegrationTest {
         .andExpect(jsonPath("$.response.code", equalTo(responseCode.getCode())));
 
     if (dataResultMatcher != null) {
-      resultActions.andExpect(dataResultMatcher);
+      resultActions.andExpectAll(dataResultMatcher);
     }
   }
 
@@ -149,7 +176,9 @@ public abstract class BaseIntegrationTest {
 
   @SneakyThrows
   private void appendBody(MockHttpServletResponse response, StringBuilder logConstant) {
+    Map<String, Object> content = objectMapper.readValue(response.getContentAsString(), Map.class);
     logConstant.append(BREAKPOINT)
-        .append(response.getContentAsString());
+        .append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(content));
   }
 }
+

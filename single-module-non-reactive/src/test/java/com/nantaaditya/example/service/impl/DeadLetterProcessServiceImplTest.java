@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -33,9 +32,6 @@ class DeadLetterProcessServiceImplTest {
 
   @Mock
   private DeadLetterProcessRepository deadLetterProcessRepository;
-
-  @Mock
-  private ApplicationContext applicationContext;
 
   @Mock
   private RetryProcessorHelper retryProcessorHelper;
@@ -82,10 +78,6 @@ class DeadLetterProcessServiceImplTest {
     when(deadLetterProcessRepository.findByProcessTypeAndProcessNameAndProcessed(
         anyString(), anyString(), eq(false), any(PageRequest.class)))
         .thenReturn(processes);
-
-    when(applicationContext.getBean(DeadLetterProcessServiceImpl.class))
-        .thenReturn(deadLetterProcessService);
-
     when(deadLetterProcessRepository.save(any(DeadLetterProcess.class)))
         .thenAnswer(answer -> answer.getArguments()[0]);
 
@@ -99,8 +91,6 @@ class DeadLetterProcessServiceImplTest {
     verify(deadLetterProcessRepository).findByProcessTypeAndProcessNameAndProcessed(
         anyString(), anyString(), eq(false), any(PageRequest.class)
     );
-
-    verify(applicationContext).getBean(DeadLetterProcessServiceImpl.class);
 
     verify(retryProcessorHelper).getProcessor(anyString(), anyString());
 
