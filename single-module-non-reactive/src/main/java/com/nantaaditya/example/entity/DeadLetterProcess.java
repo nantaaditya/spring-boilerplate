@@ -34,6 +34,7 @@ public class DeadLetterProcess extends BaseEntity {
   private String processName;
   @Column(columnDefinition = "TEXT")
   private String lastError;
+  @Column(columnDefinition = "bytea")
   private byte[] payload;
   private boolean processed;
 

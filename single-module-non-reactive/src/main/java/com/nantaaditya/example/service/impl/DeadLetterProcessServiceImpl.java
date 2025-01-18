@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -25,7 +24,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
 
-  private final ApplicationContext applicationContext;
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final RetryProcessorHelper retryProcessorHelper;
 
@@ -57,15 +55,12 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
         .stream()
         .collect(Collectors.groupingBy(d -> d.getProcessType() + "|" + d.getProcessName()));
 
-    // proxy bean
-    DeadLetterProcessServiceImpl deadLetterProcessService = applicationContext.getBean(DeadLetterProcessServiceImpl.class);
     for (Map.Entry<String, List<DeadLetterProcess>> entry : deadLetterProcesses.entrySet()) {
-      deadLetterProcessService.executeRetryProcess(entry.getKey(), entry.getValue());
+      executeRetryProcess(entry.getKey(), entry.getValue());
     }
   }
 
-  @Async
-  public void executeRetryProcess(String key, List<DeadLetterProcess> deadLetterProcesses) {
+  private void executeRetryProcess(String key, List<DeadLetterProcess> deadLetterProcesses) {
     String [] processKey = key.split("\\|");
     AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(processKey[0], processKey[1]);
     processor.execute(deadLetterProcesses);
