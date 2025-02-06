@@ -38,7 +38,7 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
-     serialization:
+    serialization:
       fail-on-empty-beans: false
 
 logging:
@@ -99,4 +99,5 @@ apps:
           readTimeOut: ${MOCK_CLIENT_READ_TIMEOUT:2000}
           connectRequestTimeOut: ${MOCK_CLIENT_CONNECT_REQUEST_TIMEOUT:2000}
         enable-log: true
+        disable-ssl-verification: true
 

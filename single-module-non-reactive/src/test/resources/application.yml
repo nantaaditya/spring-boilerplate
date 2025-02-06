@@ -98,3 +98,4 @@ apps:
           readTimeOut: 2000
           connectRequestTimeOut: 2000
         enable-log: true
+        disable-ssl-verification: true
