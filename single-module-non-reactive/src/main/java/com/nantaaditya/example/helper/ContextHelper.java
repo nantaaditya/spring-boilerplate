@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.nantaaditya.example.model.constant.ContextConstant;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
@@ -15,7 +16,6 @@ public class ContextHelper {
 
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  private static final String REQUEST_ID_KEY = "requestId";
   private static final String CONTEXT_KEY = "context";
   private static final String ADDITIONAL_DATA_KEY = "additionalData";
 
@@ -28,7 +28,7 @@ public class ContextHelper {
   public static void put(ContextDTO contextDTO) {
     try {
       String json = mapper.writeValueAsString(contextDTO);
-      MDC.put(REQUEST_ID_KEY, contextDTO.requestId());
+      MDC.put(ContextConstant.REQUEST_ID.getValue(), contextDTO.requestId());
       MDC.put(CONTEXT_KEY, json);
     } catch (JsonProcessingException ex) {
       log.error("#MDC - failed to save {}", CONTEXT_KEY, ex);

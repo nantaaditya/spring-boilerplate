@@ -48,7 +48,7 @@ logging:
     com.nantaaditya: INFO
   file.path: .logs/
   pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{reqId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{requestId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
 
 management:
   server.port: 1001
@@ -75,7 +75,7 @@ apps:
         thread-name-prefix: async-
   log:
     enable-trace-log: true
-    ignored-trace-log-path: /swagger-ui,/swagger-ui/*,/v3/api-docs,/v3/api-docs/*
+    ignored-trace-log-path: '*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*'
     sensitive-field: x-client-id
   swagger:
     host: http://localhost

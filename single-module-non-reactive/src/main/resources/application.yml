@@ -49,16 +49,23 @@ logging:
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
   file.path: ${LOG_PATH:.logs/}
   pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{reqId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{requestId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
   endpoint:
     shutdown.access: ${ACTUATOR_SHUTDOWN:none}
+    health.show-details: ${HEALTH_DETAIL:always}
   endpoints:
     web:
       exposure.include: ${ACTUATOR_EXPOSED:*}
+  prometheus:
+    metrics:
+      export:
+        enabled: ${PROMETHEUS_ENABLED:true}
   tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
     baggage:
       correlation:
         fields: ${TRACING_CORRELATION_FIELDS:requestId}
