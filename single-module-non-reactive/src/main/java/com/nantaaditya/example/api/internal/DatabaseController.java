@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/internal-api/database")
-@Tag(name = "internal api", description = "internal api for utility purpose")
+@Tag(name = "internal-api", description = "internal api for utility purpose")
 public class DatabaseController {
 
   private final DatabaseMigrationService databaseMigrationService;

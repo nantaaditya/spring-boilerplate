@@ -3,6 +3,7 @@ package com.nantaaditya.example.client;
 import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RestSenderHelper;
 import com.nantaaditya.example.model.response.MockClientResponse;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -23,12 +24,12 @@ public class MockClient {
     MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
     return restSender.execute(
-        HttpMethod.GET,
-        "/todos/1",
-        new HttpHeaders(headers),
-        null,
-        MockClientResponse.class
-      )
+            HttpMethod.GET,
+            "/todos/1",
+            new HttpHeaders(headers),
+            null,
+            new ParameterizedTypeReference<MockClientResponse>() {}
+        )
         .getBody();
   }
 }

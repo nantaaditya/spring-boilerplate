@@ -164,9 +164,40 @@ public class ExampleRetry {
 
 - all exhausted retry process will be stored on dead_letter_process, later you can retry it manually
 
+### async auto configuration
+this feature will autoconfigure thread pool for asynchronous process, you just need to define `apps.async.configurations.[asyncName]` props.
+and annotated your method with `@Async("asyncNameAsyncTaskExecutor")`.
+
+| key name           | type   | default value | description                                                      |
+|--------------------|--------|---------------|------------------------------------------------------------------|
+| core-pool-size     | int    | 5             | Set the ThreadPoolExecutor's core pool size                      |
+| max-pool-size      | int    | 10            | Set the ThreadPoolExecutor's maximum pool size                   |
+| queue-capacity     | int    | 50            | Set the capacity for the ThreadPoolExecutor's BlockingQueue      |
+| keep-alive-seconds | int    | 60            | Set the ThreadPoolExecutor's keep-alive seconds                  |
+| thread-name-prefix | String | async-        | Specify the prefix to use for the names of newly created threads |
+
+
 ### external client auto configuration
 this feature will autoconfigure external client using `apps.client.configurations.[clientName]` props.
 it also supports with retry policy, as long as the key between `apps.client.configurations.[clientName]` and `apps.retry.configurations.[retryKey]` is the same.
+
+| key name                                                            | type            | default value | description                                                                                                                                                              |
+|---------------------------------------------------------------------|-----------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| apps.client.log-format                                              | ClientLogFormat | -             | log format for client request & response, there are two options: HTTP, JSON                                                                                              |
+| apps.client.pooling.max-total                                       | int             | -             | This parameter sets the absolute maximum number of connections that can be open in the pool across all routes (all target hosts)                                         |
+| apps.client.pooling.max-per-route                                   | int             | -             | This parameter sets the maximum number of connections allowed for a specific route (a specific target host)                                                              |
+| apps.client.configurations.[name].host                              | String          | -             | client base url / host                                                                                                                                                   |
+| apps.client.configurations.[name].time-out.connect-time-out         | int             | -             | This timeout is the maximum time allowed to establish a connection with the target server                                                                                |
+| apps.client.configurations.[name].time-out.read-time-out            | int             | -             | Once a connection is successfully established, this timeout defines the maximum period of inactivity between two consecutive data packets being received from the server |
+| apps.client.configurations.[name].time-out.connect-request-time-out | int             | -             | This timeout applies when requesting a connection from the connection manager (the pool of connections maintained by HttpClient)                                         |
+| apps.client.configurations.[name].proxy.host                        | String          | -             | if your client need to connect through proxy, leave it blank to disable                                                                                                  |
+| apps.client.configurations.[name].proxy.port                        | int             | -             | proxy port                                                                                                                                                               |
+| apps.client.configurations.[name].credential.username               | String          | -             | client username credential                                                                                                                                               |
+| apps.client.configurations.[name].credential.password               | String          | -             | client password credential                                                                                                                                               |
+| apps.client.configurations.[name].enable-log                        | String          | false         | enable log for each request & response                                                                                                                                   |
+| apps.client.configurations.[name].disable-ssl-verification          | String          | false         | disable ssl verification                                                                                                                                                 |
+
+
 to create external client, you need to create a bean like this example:
 
 ```java
@@ -178,18 +209,18 @@ public class MockClient {
   public MockClient(RestSenderHelper restSenderHelper) {
     this.restSender = restSenderHelper.getRestSender("mock"); // get rest sender by name
   }
- 
+
   public MockClientResponse getMock() {
     MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
     return restSender.execute(
         HttpMethod.GET,
-        "todos/1",
+        "/todos/1",
         new HttpHeaders(headers),
         null,
-        MockClientResponse.class
+        new ParameterizedTypeReference<MockClientResponse>() {}
       )
-        .getBody();
+      .getBody();
   }
 }
 ```

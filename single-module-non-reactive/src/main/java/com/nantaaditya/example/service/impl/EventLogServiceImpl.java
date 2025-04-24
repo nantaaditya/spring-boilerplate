@@ -13,7 +13,7 @@ public class EventLogServiceImpl implements EventLogService {
 
   private final EventLogRepository eventLogRepository;
 
-  @Async
+  @Async("defaultAsyncTaskExecutor")
   @Override
   public void remove(int days) {
     LocalDateTime now = LocalDateTime.now();

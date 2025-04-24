@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
+import com.nantaaditya.example.model.constant.ClientLogFormat;
+import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
 import java.io.IOException;
 import java.net.URI;
@@ -38,6 +40,8 @@ class ClientLogInterceptorTest {
   private ClientHttpRequestExecution execution;
   @Mock
   private ClientHttpResponse httpResponse;
+  @Mock
+  private ClientProperties clientProperties;
 
   private static final String payload = """
       {"key": "valueeeee"}
@@ -47,11 +51,36 @@ class ClientLogInterceptorTest {
   void setUp() {
     when(logProperties.getSensitiveFields())
         .thenReturn(Set.of("key"));
-    interceptor = new ClientLogInterceptor(gson, logProperties);
+    when(clientProperties.logFormat())
+        .thenReturn(ClientLogFormat.HTTP);
   }
 
   @Test
-  void intercept() throws URISyntaxException, IOException {
+  void intercept_http() throws URISyntaxException, IOException {
+    interceptor = new ClientLogInterceptor(gson, logProperties, clientProperties);
+    when(httpRequest.getMethod())
+        .thenReturn(HttpMethod.GET);
+    when(httpRequest.getURI())
+        .thenReturn(new URI("http://google.com"));
+
+    MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+    map.add("key", "other");
+    when(httpRequest.getHeaders())
+        .thenReturn(new HttpHeaders(map));
+
+    when(httpResponse.getStatusCode())
+        .thenReturn(HttpStatusCode.valueOf(200));
+    when(httpResponse.getHeaders())
+        .thenReturn(new HttpHeaders(map));
+    when(execution.execute(httpRequest, payload.getBytes(StandardCharsets.UTF_8)))
+        .thenReturn(httpResponse);
+
+    assertNotNull(interceptor.intercept(httpRequest, payload.getBytes(StandardCharsets.UTF_8), execution));
+  }
+
+  @Test
+  void intercept_json() throws URISyntaxException, IOException {
+    interceptor = new ClientLogInterceptor(gson, logProperties, clientProperties);
     when(httpRequest.getMethod())
         .thenReturn(HttpMethod.GET);
     when(httpRequest.getURI())

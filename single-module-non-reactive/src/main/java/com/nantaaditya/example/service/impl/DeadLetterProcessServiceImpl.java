@@ -27,8 +27,8 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final RetryProcessorHelper retryProcessorHelper;
 
-  @Async
   @Override
+  @Async("defaultAsyncTaskExecutor")
   public void remove(int days) {
     LocalDateTime now = LocalDateTime.now();
     deadLetterProcessRepository.deleteByCreatedDateLessThan(now.minusDays(days)
@@ -36,7 +36,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   }
 
   @Override
-  @Async
+  @Async("defaultAsyncTaskExecutor")
   public void retry(RetryDeadLetterProcessRequest request) {
     PageRequest pageRequest = PageRequest.of(0, request.size(),
         Sort.by(Direction.ASC, "createdDate"));

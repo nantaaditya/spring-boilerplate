@@ -59,6 +59,22 @@ public class ContextHelper {
     }
   }
 
+  public static String get(ContextConstant contextConstant) {
+    ContextDTO contextDTO = get();
+    if (contextDTO == null) return null;
+
+    return switch (contextConstant) {
+      case CLIENT_ID -> contextDTO.clientId();
+      case REQUEST_ID -> contextDTO.requestId();
+      case REQUEST_TIME -> contextDTO.requestTime();
+      case RECEIVED_TIME -> contextDTO.receivedTime();
+      case RESPONSE_CODE -> contextDTO.responseCode();
+      case RESPONSE_DESCRIPTION -> contextDTO.responseDescription();
+      case RESPONSE_TIME -> contextDTO.responseTime();
+      default -> null;
+    };
+  }
+
   public static byte[] getAdditionalData() {
     String json = MDC.get(ADDITIONAL_DATA_KEY);
     if (json == null) return null;
