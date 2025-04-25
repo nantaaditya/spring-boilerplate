@@ -6,11 +6,15 @@ import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.SQLGrammarException;
@@ -99,7 +103,7 @@ public class ApiExceptionHandler {
   public Response<Object> missingServletRequestParameterException(MissingServletRequestParameterException exception) {
     log.error(ERROR_LOG, exception);
 
-    Map<String, List<String>> errors = Map.of(exception.getParameterName(), List.of("missing"));
+    Map<String, List<String>> errors = Map.of(exception.getParameterName(), List.of("required"));
     Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
     ContextHelper.put(getErrors(errors));
 
@@ -128,28 +132,6 @@ public class ApiExceptionHandler {
     return response;
   }
 
-  private Map<String, List<String>> from(MethodArgumentNotValidException ex) {
-    BindingResult result = ex.getBindingResult();
-    if (!result.hasFieldErrors()) {
-      return Collections.emptyMap();
-    }
-
-    Map<String, List<String>> map = new HashMap<>();
-
-    for (FieldError fieldError : result.getFieldErrors()) {
-      String field = fieldError.getField();
-
-      if (!map.containsKey(fieldError.getField())) {
-        map.put(field, new LinkedList<>());
-      }
-
-      String errorMessage = fieldError.getDefaultMessage();
-      map.get(field).add(errorMessage);
-    }
-
-    return map;
-  }
-
   private String getErrors(Map<String, List<String>> violations) {
     try {
       return objectMapper.writeValueAsString(violations);
@@ -158,4 +140,31 @@ public class ApiExceptionHandler {
       return null;
     }
   }
-}
+
+  private Map<String, List<String>> from(MethodArgumentNotValidException ex) {
+    BindingResult result = ex.getBindingResult();
+    if (!result.hasFieldErrors()) {
+      return Collections.emptyMap();
+    }
+
+    Map<String, Set<String>> map = new HashMap<>();
+
+    for (FieldError fieldError : result.getFieldErrors()) {
+      String field = fieldError.getField();
+
+        if (!map.containsKey(field)) {
+          map.put(field, new TreeSet<>());
+        }
+
+        String errorMessage = fieldError.getDefaultMessage();
+        map.get(field).add(errorMessage);
+      }
+
+      return map.entrySet()
+          .stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              entry -> new ArrayList<>(entry.getValue())
+          ));
+    }
+  }
