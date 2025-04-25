@@ -10,15 +10,23 @@ import com.nantaaditya.example.properties.embedded.ClientPoolingConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientProxyConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientTimeOutConfiguration;
 import io.micrometer.observation.ObservationRegistry;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
+import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.ssl.TrustStrategy;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,35 +70,52 @@ public class RestClientBeanConfiguration {
   }
 
   public RestTemplate createRestClient(RestTemplateBuilder builder, ClientConfiguration clientConfiguration) {
-    HttpClientBuilder httpClient = getHttpClientBuilder(clientConfiguration);
+    try {
+      HttpClientBuilder httpClient = getHttpClientBuilder(clientConfiguration);
 
-    ClientTimeOutConfiguration timeOutConfiguration = clientConfiguration.timeOut();
-    HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory(httpClient.build());
-    httpRequestFactory.setConnectionRequestTimeout(timeOutConfiguration.connectRequestTimeOut());
-    httpRequestFactory.setConnectTimeout(timeOutConfiguration.connectTimeOut());
-    httpRequestFactory.setReadTimeout(timeOutConfiguration.readTimeOut());
+      ClientTimeOutConfiguration timeOutConfiguration = clientConfiguration.timeOut();
+      HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory(
+          httpClient.build());
+      httpRequestFactory.setConnectionRequestTimeout(timeOutConfiguration.connectRequestTimeOut());
+      httpRequestFactory.setConnectTimeout(timeOutConfiguration.connectTimeOut());
+      httpRequestFactory.setReadTimeout(timeOutConfiguration.readTimeOut());
 
-    RestTemplate restTemplate = builder
-        .requestFactory(() -> httpRequestFactory)
-        .rootUri(clientConfiguration.host())
-        .build();
-    if (clientConfiguration.enableLog()) {
-      restTemplate.setInterceptors(List.of(new ClientLogInterceptor(gson, logProperties)));
+      RestTemplate restTemplate = builder
+          .requestFactory(() -> httpRequestFactory)
+          .rootUri(clientConfiguration.host())
+          .build();
+      if (clientConfiguration.enableLog()) {
+        restTemplate.setInterceptors(List.of(new ClientLogInterceptor(gson, logProperties)));
+      }
+
+      restTemplate.setObservationRegistry(observationRegistry);
+      return restTemplate;
+    } catch (Exception e) {
+      log.error("#Client - error while creating rest client", e);
+      return null;
     }
-
-    restTemplate.setObservationRegistry(observationRegistry);
-    return restTemplate;
   }
 
-  private HttpClientBuilder getHttpClientBuilder(ClientConfiguration clientConfiguration) {
+  private HttpClientBuilder getHttpClientBuilder(ClientConfiguration clientConfiguration)
+      throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
     HttpClientBuilder httpClient = HttpClientBuilder.create();
 
     ClientPoolingConfiguration poolingConfiguration = clientProperties.pooling();
-    PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-    connectionManager.setMaxTotal(poolingConfiguration.maxTotal());
-    connectionManager.setDefaultMaxPerRoute(poolingConfiguration.maxPerRoute());
+    PoolingHttpClientConnectionManagerBuilder connectionManagerBuilder = PoolingHttpClientConnectionManagerBuilder.create()
+        .setMaxConnTotal(poolingConfiguration.maxTotal())
+        .setMaxConnPerRoute(poolingConfiguration.maxPerRoute());
 
-    httpClient = httpClient.setConnectionManager(connectionManager);
+    if (clientConfiguration.disableSslVerification()) {
+      TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
+      SSLContext sslContext = SSLContexts.custom()
+          .loadTrustMaterial(null, acceptingTrustStrategy)
+          .build();
+      TlsSocketStrategy tlsSocketStrategy = new DefaultClientTlsStrategy(
+          sslContext, (host, session) -> true);
+      connectionManagerBuilder = connectionManagerBuilder.setTlsSocketStrategy(tlsSocketStrategy);
+    }
+
+    httpClient = httpClient.setConnectionManager(connectionManagerBuilder.build());
 
     if (clientConfiguration.isUseProxy()) {
       ClientProxyConfiguration proxyConfiguration = clientConfiguration.proxy();

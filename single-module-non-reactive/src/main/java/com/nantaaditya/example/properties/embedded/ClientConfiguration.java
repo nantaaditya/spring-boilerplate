@@ -8,7 +8,8 @@ public record ClientConfiguration(
     ClientTimeOutConfiguration timeOut,
     ClientProxyConfiguration proxy,
     ClientCredentialConfiguration credential,
-    boolean enableLog
+    boolean enableLog,
+    boolean disableSslVerification
 ) {
 
   public boolean isUseProxy() {
