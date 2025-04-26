@@ -1,5 +1,6 @@
 package com.nantaaditya.example.model.dto;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.retry.RetryContext;
@@ -11,7 +12,7 @@ public record ClientRequest<S, T>(
     MultiValueMap<String, String> queryParams,
     HttpHeaders headers,
     S request,
-    Class<T> responseType,
+    ParameterizedTypeReference<T> responseType,
     RetryContext retryContext,
     String processName
 ) {

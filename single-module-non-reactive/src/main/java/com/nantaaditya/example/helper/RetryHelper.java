@@ -1,5 +1,6 @@
 package com.nantaaditya.example.helper;
 
+import com.nantaaditya.example.model.constant.ContextConstant;
 import com.nantaaditya.example.model.constant.RetryConstant;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class RetryHelper {
   private static <S, T> void updateRetryContext(String processType,
       String processName, RetryContext context, S request, T response, Throwable e) {
     context.setAttribute(RetryConstant.REQUEST.getName(), request);
+    context.setAttribute(RetryConstant.REQUEST_ID.getName(), ContextHelper.get(ContextConstant.REQUEST_ID));
     context.setAttribute(RetryConstant.EXCEPTION.getName(), e.getCause());
     context.setAttribute(RetryConstant.PROCESS_TYPE.getName(), processType);
     context.setAttribute(RetryConstant.PROCESS_NAME.getName(), processName);

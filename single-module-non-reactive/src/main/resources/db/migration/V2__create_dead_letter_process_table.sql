@@ -1,5 +1,5 @@
 create table if not exists dead_letter_process (
-    id bigserial,
+    id bigserial primary key,
     created_by varchar(25),
     updated_by varchar(25),
     created_date timestamp,

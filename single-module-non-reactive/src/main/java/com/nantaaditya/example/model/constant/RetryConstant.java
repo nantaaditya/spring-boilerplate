@@ -6,6 +6,7 @@ import lombok.Getter;
 public enum RetryConstant {
 
   REQUEST("request"),
+  REQUEST_ID("requestId"),
   RESPONSE("response"),
   PROCESS_TYPE("process_type"),
   PROCESS_NAME("process_name"),

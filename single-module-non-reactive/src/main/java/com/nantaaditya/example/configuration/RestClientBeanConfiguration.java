@@ -1,10 +1,8 @@
 package com.nantaaditya.example.configuration;
 
-import com.google.gson.Gson;
 import com.nantaaditya.example.factory.RestClientHelperFactory;
 import com.nantaaditya.example.interceptor.ClientLogInterceptor;
 import com.nantaaditya.example.properties.ClientProperties;
-import com.nantaaditya.example.properties.LogProperties;
 import com.nantaaditya.example.properties.embedded.ClientConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientPoolingConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientProxyConfiguration;
@@ -38,10 +36,9 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class RestClientBeanConfiguration {
 
-  private final Gson gson;
   private final ClientProperties clientProperties;
-  private final LogProperties logProperties;
   private final ObservationRegistry observationRegistry;
+  private final ClientLogInterceptor clientLoggingInterceptor;
 
   private static final String POSTFIX_BEAN_NAME = "RestClient";
 
@@ -85,7 +82,7 @@ public class RestClientBeanConfiguration {
           .rootUri(clientConfiguration.host())
           .build();
       if (clientConfiguration.enableLog()) {
-        restTemplate.setInterceptors(List.of(new ClientLogInterceptor(gson, logProperties)));
+        restTemplate.setInterceptors(List.of(clientLoggingInterceptor));
       }
 
       restTemplate.setObservationRegistry(observationRegistry);
@@ -101,7 +98,7 @@ public class RestClientBeanConfiguration {
     HttpClientBuilder httpClient = HttpClientBuilder.create();
 
     ClientPoolingConfiguration poolingConfiguration = clientProperties.pooling();
-    PoolingHttpClientConnectionManagerBuilder connectionManagerBuilder = PoolingHttpClientConnectionManagerBuilder.create()
+    PoolingHttpClientConnectionManagerBuilder connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
         .setMaxConnTotal(poolingConfiguration.maxTotal())
         .setMaxConnPerRoute(poolingConfiguration.maxPerRoute());
 
@@ -112,10 +109,10 @@ public class RestClientBeanConfiguration {
           .build();
       TlsSocketStrategy tlsSocketStrategy = new DefaultClientTlsStrategy(
           sslContext, (host, session) -> true);
-      connectionManagerBuilder = connectionManagerBuilder.setTlsSocketStrategy(tlsSocketStrategy);
+      connectionManager = connectionManager.setTlsSocketStrategy(tlsSocketStrategy);
     }
 
-    httpClient = httpClient.setConnectionManager(connectionManagerBuilder.build());
+    httpClient = httpClient.setConnectionManager(connectionManager.build());
 
     if (clientConfiguration.isUseProxy()) {
       ClientProxyConfiguration proxyConfiguration = clientConfiguration.proxy();

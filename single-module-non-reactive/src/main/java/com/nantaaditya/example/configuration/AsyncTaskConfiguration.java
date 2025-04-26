@@ -1,5 +1,6 @@
 package com.nantaaditya.example.configuration;
 
+import com.nantaaditya.example.helper.AsyncMDCTaskDecorator;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
 import lombok.RequiredArgsConstructor;
@@ -27,23 +28,28 @@ public class AsyncTaskConfiguration {
       return;
     }
 
+    AsyncMDCTaskDecorator asyncMDCTaskDecorator = new AsyncMDCTaskDecorator();
     asyncProperties.configurations()
-      .forEach((key, value) -> applicationContext.registerBean(
-          key + POSTFIX_BEAN_NAME,
-          ThreadPoolTaskExecutor.class,
-          () -> createAsyncExecutor(asyncProperties.getConfiguration(key)),
-          definition -> definition.setLazyInit(true)
-          )
-      );
+        .forEach((key, value) -> applicationContext.registerBean(
+                key + POSTFIX_BEAN_NAME,
+                ThreadPoolTaskExecutor.class,
+                () -> createAsyncExecutor(asyncProperties.getConfiguration(key), asyncMDCTaskDecorator),
+                definition -> definition.setLazyInit(true)
+            )
+        );
+
+    log.debug("#AsyncExecutor - bean {} created", asyncProperties.getConfiguration(POSTFIX_BEAN_NAME));
   }
 
-  private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration) {
+  private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration,
+      AsyncMDCTaskDecorator asyncMDCTaskDecorator) {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(configuration.corePoolSize());
     executor.setMaxPoolSize(configuration.maxPoolSize());
     executor.setQueueCapacity(configuration.queueCapacity());
     executor.setThreadNamePrefix(configuration.threadNamePrefix());
     executor.setKeepAliveSeconds(configuration.keepAliveSeconds());
+    executor.setTaskDecorator(asyncMDCTaskDecorator);
     executor.initialize();
     return executor;
   }

@@ -50,7 +50,8 @@ public class ApiExceptionHandler {
     log.error(ERROR_LOG, exception);
 
     Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, from(exception));
-    ContextHelper.put(collectErrors(exception));
+    Map<String, List<String>> errorMaps = from(exception);
+    ContextHelper.put(getErrors(errorMaps));
 
     return response;
   }
@@ -64,7 +65,6 @@ public class ApiExceptionHandler {
     Map<String, List<String>> errors = Map.of("endpoint", List.of("not available"));
     Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
     ContextHelper.put(getErrors(errors));
-
     return response;
   }
 
@@ -132,16 +132,6 @@ public class ApiExceptionHandler {
     return response;
   }
 
-  private String collectErrors(MethodArgumentNotValidException ex) {
-    Map<String, List<String>> errorMaps = from(ex);
-    try {
-      return objectMapper.writeValueAsString(errorMaps);
-    } catch (JsonProcessingException e) {
-      log.error("#ApiError - failed convert errors, ", e);
-      return null;
-    }
-  }
-
   private String getErrors(Map<String, List<String>> violations) {
     try {
       return objectMapper.writeValueAsString(violations);
@@ -162,19 +152,19 @@ public class ApiExceptionHandler {
     for (FieldError fieldError : result.getFieldErrors()) {
       String field = fieldError.getField();
 
-      if (!map.containsKey(field)) {
-        map.put(field, new TreeSet<>());
+        if (!map.containsKey(field)) {
+          map.put(field, new TreeSet<>());
+        }
+
+        String errorMessage = fieldError.getDefaultMessage();
+        map.get(field).add(errorMessage);
       }
 
-      String errorMessage = fieldError.getDefaultMessage();
-      map.get(field).add(errorMessage);
+      return map.entrySet()
+          .stream()
+          .collect(Collectors.toMap(
+              Entry::getKey,
+              entry -> new ArrayList<>(entry.getValue())
+          ));
     }
-
-    return map.entrySet()
-        .stream()
-        .collect(Collectors.toMap(
-            Entry::getKey,
-            entry -> new ArrayList<>(entry.getValue())
-        ));
   }
-}

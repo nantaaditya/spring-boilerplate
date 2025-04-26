@@ -7,16 +7,16 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class CachedBodyInputStream extends ServletInputStream {
-  private InputStream cachedBodyInputStream;
+  private InputStream inputStream;
 
   public CachedBodyInputStream(byte[] cachedBody) {
-    this.cachedBodyInputStream = new ByteArrayInputStream(cachedBody);
+    this.inputStream = new ByteArrayInputStream(cachedBody);
   }
 
   @Override
   public boolean isFinished() {
     try {
-      return cachedBodyInputStream.available() == 0;
+      return inputStream.available() == 0;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -34,6 +34,6 @@ public class CachedBodyInputStream extends ServletInputStream {
 
   @Override
   public int read() throws IOException {
-    return cachedBodyInputStream.read();
+    return inputStream.read();
   }
 }

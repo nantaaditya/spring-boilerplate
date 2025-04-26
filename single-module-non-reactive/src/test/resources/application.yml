@@ -87,6 +87,7 @@ apps:
       max-interval: 10000
       max-attempt: 3
   client:
+    log-format: http
     pooling:
       maxTotal: 10
       maxPerRoute: 5
