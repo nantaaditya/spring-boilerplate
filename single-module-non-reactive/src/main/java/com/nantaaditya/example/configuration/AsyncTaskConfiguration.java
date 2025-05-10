@@ -1,8 +1,10 @@
 package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.helper.AsyncMDCTaskDecorator;
+import com.nantaaditya.example.helper.TaskRetryHelper;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
+import java.util.concurrent.ThreadPoolExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -29,11 +31,13 @@ public class AsyncTaskConfiguration {
     }
 
     AsyncMDCTaskDecorator asyncMDCTaskDecorator = new AsyncMDCTaskDecorator();
+    TaskRetryHelper taskRetryHelper = new TaskRetryHelper(asyncMDCTaskDecorator,
+        asyncProperties.retryRejectedTask(), asyncProperties.maxRetryRejectedTask());
     asyncProperties.configurations()
         .forEach((key, value) -> applicationContext.registerBean(
                 key + POSTFIX_BEAN_NAME,
                 ThreadPoolTaskExecutor.class,
-                () -> createAsyncExecutor(asyncProperties.getConfiguration(key), asyncMDCTaskDecorator),
+                () -> createAsyncExecutor(asyncProperties.getConfiguration(key), asyncMDCTaskDecorator, taskRetryHelper),
                 definition -> definition.setLazyInit(true)
             )
         );
@@ -42,7 +46,7 @@ public class AsyncTaskConfiguration {
   }
 
   private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration,
-      AsyncMDCTaskDecorator asyncMDCTaskDecorator) {
+      AsyncMDCTaskDecorator asyncMDCTaskDecorator, TaskRetryHelper taskRetryHelper) {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(configuration.corePoolSize());
     executor.setMaxPoolSize(configuration.maxPoolSize());
@@ -50,6 +54,10 @@ public class AsyncTaskConfiguration {
     executor.setThreadNamePrefix(configuration.threadNamePrefix());
     executor.setKeepAliveSeconds(configuration.keepAliveSeconds());
     executor.setTaskDecorator(asyncMDCTaskDecorator);
+    executor.setRejectedExecutionHandler((Runnable task, ThreadPoolExecutor threadPoolExecutor) -> {
+      log.warn("#AsyncExecutor - rejected execution of task {}", task);
+      taskRetryHelper.enqueue(task);
+    });
     executor.initialize();
     return executor;
   }
