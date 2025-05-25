@@ -73,6 +73,13 @@ apps:
         queue-capacity: 10
         keep-alive-seconds: 30
         thread-name-prefix: async-
+    retry-rejected-task:
+      core-pool-size: 5
+      max-pool-size: 10
+      queue-capacity: 50
+      keep-alive-seconds: 60
+      thread-name-prefix: reject-
+    max-retry-rejected-task: 100
   log:
     enable-trace-log: true
     ignored-trace-log-path: '*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*'

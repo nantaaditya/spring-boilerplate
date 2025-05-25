@@ -6,6 +6,7 @@ import com.nantaaditya.example.model.constant.ClientLogFormat;
 import com.nantaaditya.example.model.dto.ClientLogResponse;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
+import io.micrometer.core.instrument.util.StringEscapeUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -116,7 +117,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 		logMap.put("headers", getMaskedHeaders(request.getHeaders()));
 		logMap.put("body", maskJsonBody(new String(body)));
 
-		log.info(gson.toJson(logMap));
+		log.info("{}", StringEscapeUtils.escapeJson(gson.toJson(logMap)));
 	}
 
 	private void logJsonResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
@@ -130,7 +131,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 			logMap.put("body", maskJsonBody(body));
 		}
 
-		log.info(gson.toJson(logMap));
+		log.info("{}", StringEscapeUtils.escapeJson(gson.toJson(logMap)));
 	}
 
 	// --- UTILS ---
