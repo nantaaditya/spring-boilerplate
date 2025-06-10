@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: single-module-reactive
+  webflux:
+    base-path: /app
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/boilerplate
+    username: user
+    password: password
+    pool:
+      enabled: true
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    baggage:
+      remote-fields:
+        - x-client-id
+        - x-request-id
+      correlation:
+        fields:
+          - x-client-id
+          - x-request-id
+
+logging.pattern.level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{x-client-id:-},%X{x-request-id:-}]"
+
+apps:
+  log:
+    enable-trace-log: true
