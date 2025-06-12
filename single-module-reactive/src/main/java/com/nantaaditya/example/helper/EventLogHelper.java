@@ -48,7 +48,6 @@ public class EventLogHelper {
 
       Mono.fromSupplier(() -> createEventLog(context, additionalData, cleanedPayload))
           .flatMap(eventLogRepository::save)
-          .doOnError(error -> log.error("#EventLog - save error", error))
           .subscribe(
               success -> log.debug("#EventLog - success save event log"),
               error -> log.error("#EventLog - error save event log {}, cause {}",
@@ -56,7 +55,7 @@ public class EventLogHelper {
               () -> contextHelper.cleanUp(requestId)
           );
     } catch (Exception e) {
-      log.error("#EventLog - failed save event log, ", e);
+      log.error("#EventLog - failed save event log {}, cause {}", e.getMessage(), ErrorHelper.getRootCause(e));
     }
   }
 

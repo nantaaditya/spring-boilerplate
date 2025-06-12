@@ -7,6 +7,6 @@ import lombok.experimental.SuperBuilder;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-public class WebClientPayloadRequest extends WebClientRequest {
+public class WebClientPayloadRequest<T> extends WebClientRequest<T> {
   private Object requestBody;
 }
