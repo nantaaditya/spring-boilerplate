@@ -32,7 +32,7 @@ public class ObservationHelper {
     return execute(
         ObservationConstant.PUBLIC_API.getName(),
         request,
-        null,
+        Set.of(Event.of("type", ObservationConstant.PUBLIC_API.name())),
         processFunction,
         this::createApiContext
     );
@@ -59,6 +59,11 @@ public class ObservationHelper {
             .doFinally(signal -> observation.stop());
       }
     });
+  }
+
+  public void publishEvent(String key, String value) {
+    Observation current = observationRegistry.getCurrentObservation();
+    current.event(Event.of(key, value));
   }
 
   private <C extends Context> void doObservationOnError(Throwable exception, C context,
