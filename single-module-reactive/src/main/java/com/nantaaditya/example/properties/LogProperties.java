@@ -20,9 +20,7 @@ public record LogProperties(
 
   @Transient
   public Set<String> getSensitiveFields() {
-    return (Set<String>) StringHelper.toCollection(sensitiveField, ",", HashSet.class)
-        .stream()
-        .map(String::trim);
+    return (Set<String>) StringHelper.toCollection(sensitiveField, ",", HashSet.class);
   }
 
   @Transient

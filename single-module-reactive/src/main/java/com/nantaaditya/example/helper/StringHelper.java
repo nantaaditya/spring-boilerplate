@@ -21,7 +21,7 @@ public class StringHelper {
           new StringTokenizer(fields) : new StringTokenizer(fields, delimiter);
 
       while (tokenizer.hasMoreTokens()) {
-        collections.add(tokenizer.nextToken());
+        collections.add(tokenizer.nextToken().trim());
       }
       return collections;
     } catch (InstantiationException | IllegalAccessException
