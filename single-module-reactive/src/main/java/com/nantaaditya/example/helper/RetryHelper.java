@@ -26,6 +26,10 @@ public class RetryHelper {
 
   @EventListener(ApplicationReadyEvent.class)
   public void onStart() {
+    if (retryProperties.configurations() == null) {
+      return;
+    }
+
     retryProperties.configurations()
       .forEach((key, value) -> {
         RetryBackoffSpec retry = createRetry(value);

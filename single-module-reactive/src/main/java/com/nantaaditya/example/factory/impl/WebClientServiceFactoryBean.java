@@ -5,6 +5,7 @@ import com.nantaaditya.example.factory.WebClientServiceFactory;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.service.WebClientService;
 import com.nantaaditya.example.service.impl.WebClientServiceImpl;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -26,6 +27,10 @@ public class WebClientServiceFactoryBean implements FactoryBean<WebClientService
 
   @Override
   public WebClientServiceFactory getObject() throws Exception {
+    if (clientProperties.configurations() == null) {
+      return new WebClientServiceFactoryImpl(Collections.emptyMap());
+    }
+
     Map<String, WebClientService> configurations = clientProperties
         .configurations()
         .entrySet()

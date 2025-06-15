@@ -13,6 +13,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -49,6 +50,10 @@ public class WebClientFactoryBean implements FactoryBean<WebClientFactory> {
 
   @Override
   public WebClientFactory getObject() throws Exception {
+    if (clientProperties.configurations() == null) {
+      return new WebClientFactoryImpl(Collections.emptyMap());
+    }
+
     Map<String, WebClient> webClients = clientProperties.configurations()
         .entrySet()
         .stream()

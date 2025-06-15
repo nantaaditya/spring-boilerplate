@@ -28,6 +28,10 @@ public class EventLogHelper {
   public void save(ServerWebExchange exchange) {
     try {
       String requestId = tracerHelper.getBaggage(HeaderConstant.REQUEST_ID);
+      if (requestId == null) {
+        log.warn("#EventLog - requestId is null");
+        return;
+      }
 
       ContextDTO context = contextHelper.get(requestId);
       if (context == null) {
