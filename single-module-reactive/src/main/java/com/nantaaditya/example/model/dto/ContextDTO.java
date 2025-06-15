@@ -1,9 +1,11 @@
 package com.nantaaditya.example.model.dto;
 
 import com.nantaaditya.example.helper.DateTimeHelper;
+import com.nantaaditya.example.helper.TsidHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.response.BaseResponse.ResponseMetadata;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import lombok.Data;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
@@ -31,5 +33,13 @@ public class ContextDTO {
     this.responseCode = responseMetadata.getCode();
     this.responseDescription = responseMetadata.getDescription();
     return this;
+  }
+
+  public String getRequestId() {
+    return Optional.ofNullable(requestId).orElse(TsidHelper.generateStringId());
+  }
+
+  public String getClientId() {
+    return Optional.ofNullable(clientId).orElse("SYSTEM");
   }
 }
