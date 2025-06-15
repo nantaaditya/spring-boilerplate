@@ -36,15 +36,15 @@ public class AsyncTaskConfiguration {
         asyncProperties.retryRejectedTask(), asyncProperties.maxRetryRejectedTask());
     asyncProperties.configurations()
         .forEach((key, value) -> applicationContext.registerBean(
-                key + POSTFIX_BEAN_NAME,
-                ThreadPoolTaskExecutor.class,
-                () -> createAsyncExecutor(
-                    asyncProperties.getConfiguration(key),
-                    asyncMDCTaskDecorator,
-                    taskRetryHelper
-                ),
-                definition -> definition.setLazyInit(true)
-            )
+             key + POSTFIX_BEAN_NAME,
+            ThreadPoolTaskExecutor.class,
+            () -> createAsyncExecutor(
+                asyncProperties.getConfiguration(key),
+                asyncMDCTaskDecorator,
+                taskRetryHelper
+            ),
+            definition -> definition.setLazyInit(true)
+          )
         );
 
     log.debug("#AsyncExecutor - bean {} created", asyncProperties.getConfiguration(POSTFIX_BEAN_NAME));

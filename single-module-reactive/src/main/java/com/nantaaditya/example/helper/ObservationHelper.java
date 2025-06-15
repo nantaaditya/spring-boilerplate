@@ -28,11 +28,11 @@ public class ObservationHelper {
   private final TracerHelper tracerHelper;
   private final ContextHelper contextHelper;
 
-  public <S, T> Mono<T> observeApi(S request, Function<S, Mono<T>> processFunction) {
+  public <S, T> Mono<T> observeApi(ObservationConstant type, S request, Function<S, Mono<T>> processFunction) {
     return execute(
-        ObservationConstant.PUBLIC_API.getName(),
+        type.getName(),
         request,
-        Set.of(Event.of("type", ObservationConstant.PUBLIC_API.name())),
+        Set.of(Event.of("type", type.name())),
         processFunction,
         this::createApiContext
     );
