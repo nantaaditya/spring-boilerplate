@@ -9,11 +9,22 @@ spring:
     password: password
     pool:
       enabled: true
+      initial-size: ${R2DBC_INITIAL_POOL:10}
+      max-size: ${R2DBC_MAX_POOL:20}
+      validation-query: SELECT 1
 
 management:
+  server:
+    port: ${ACTUATOR_PORT:1000}
+  endpoint:
+    shutdown.access: ${ACTUATOR_SHUTDOWN:none}
+    health.show-details: ${HEALTH_DETAIL:always}
+  endpoints:
+    web:
+      exposure.include: ${ACTUATOR_EXPOSED:*}
   tracing:
     sampling:
-      probability: 1.0
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
     baggage:
       remote-fields:
         - x-client-id
@@ -27,4 +38,6 @@ logging.pattern.level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId
 
 apps:
   log:
-    enable-trace-log: true
+    enable-trace-log: ${ENABLE_TRACE_LOG:true}
+    ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
+    sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
