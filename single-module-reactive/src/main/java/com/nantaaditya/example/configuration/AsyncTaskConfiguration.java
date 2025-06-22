@@ -12,7 +12,6 @@ import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicatio
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.context.support.GenericWebApplicationContext;
 
 @Slf4j
 @Configuration

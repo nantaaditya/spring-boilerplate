@@ -3,7 +3,6 @@ package com.nantaaditya.example.factory.impl;
 import com.nantaaditya.example.factory.WebClientServiceFactory;
 import com.nantaaditya.example.service.WebClientService;
 import java.util.Map;
-import lombok.Setter;
 
 public class WebClientServiceFactoryImpl implements WebClientServiceFactory {
 

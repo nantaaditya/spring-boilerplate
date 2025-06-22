@@ -4,6 +4,7 @@ import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
 import com.nantaaditya.example.properties.RetryProperties;
+import com.nantaaditya.example.properties.SchedulerProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,7 +17,8 @@ import reactor.core.publisher.Hooks;
     AsyncTaskProperties.class,
     ClientProperties.class,
     LogProperties.class,
-    RetryProperties.class
+    RetryProperties.class,
+    SchedulerProperties.class
 })
 public class SingleModuleReactiveApplication {
 
