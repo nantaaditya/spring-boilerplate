@@ -1,7 +1,13 @@
 package com.nantaaditya.example.helper;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nantaaditya.example.entity.DeadLetterProcess;
+import com.nantaaditya.example.model.constant.HeaderConstant;
+import com.nantaaditya.example.model.constant.RetryConstant;
+import com.nantaaditya.example.model.request.RetryRequest;
 import com.nantaaditya.example.properties.RetryProperties;
 import com.nantaaditya.example.properties.embedded.RetryConfiguration;
+import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
@@ -13,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 import reactor.util.retry.Retry;
 import reactor.util.retry.RetryBackoffSpec;
 
@@ -21,7 +29,15 @@ import reactor.util.retry.RetryBackoffSpec;
 @RequiredArgsConstructor
 public class RetryHelper {
 
+  private final ReactorEventBusHelper reactorEventBusHelper;
   private final RetryProperties retryProperties;
+  private final DeadLetterProcessRepository deadLetterProcessRepository;
+  private final TracerHelper tracerHelper;
+  private final ObjectMapper objectMapper;
+
+  public static final String BEFORE_SUFFIX_EVENT = "BeforeEvent";
+  public static final String AFTER_SUFFIX_EVENT = "AfterEvent";
+
   private Map<String, Retry> retries = new ConcurrentHashMap<>();
 
   @EventListener(ApplicationReadyEvent.class)
@@ -36,16 +52,33 @@ public class RetryHelper {
 
         if (!value.getRetryableExceptions().isEmpty()) {
           retry = retry
-              .filter(exception -> isRetryable(exception, value.getRetryableExceptions()))
-              .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                log.error("#Retry - exhausted retry {} error {}", key, retrySignal.failure().getMessage());
-                throw new IllegalStateException("#Retry - exhausted retry " + key, retrySignal.failure());
-              });
+            .filter(exception -> isRetryable(exception, value.getRetryableExceptions()))
+            .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
+              log.error("#Retry - exhausted retry {} error {}", key, retrySignal.failure().getMessage());
+              throw new IllegalStateException("#Retry - exhausted retry " + key, retrySignal.failure());
+            });
         }
+
+        retry = retry
+          .doBeforeRetry(retrySignal -> {
+            reactorEventBusHelper.publish(getRetryEvent(key, BEFORE_SUFFIX_EVENT), retrySignal);
+          })
+          .doAfterRetry(retrySignal -> {
+            reactorEventBusHelper.publish(getRetryEvent(key, AFTER_SUFFIX_EVENT), retrySignal);
+          });
 
         retries.put(key, retry);
       }
     );
+  }
+
+  public <S, T, E extends Throwable> Mono<T> execute(RetryRequest<S, T, E> retryRequest) {
+    return Mono.defer(() -> retryRequest.action().apply(retryRequest.request()))
+        .retryWhen(getRetry(retryRequest.processName()))
+        .onErrorResume(error -> retryRequest.fallback().apply((E) error)
+            .doOnNext(item -> saveOnMaxRetry(retryRequest, error))
+        )
+        .contextWrite(context -> updateContext(retryRequest, context));
   }
 
   public Retry getRetry(String key) {
@@ -95,4 +128,31 @@ private boolean isRetryable(Throwable throwable, Map<Class<? extends Throwable>,
       case DAYS -> ChronoUnit.DAYS;
     };
   }
+
+  private String getRetryEvent(String key, String suffix) {
+    return key + suffix;
+  }
+
+  private <S, T, E extends Throwable> void saveOnMaxRetry(RetryRequest<S, T, E> retryRequest,
+      Throwable throwable) {
+    if (retryRequest.saveOnMaxRetry()) {
+      deadLetterProcessRepository.save(DeadLetterProcess.create(retryRequest, throwable, objectMapper))
+          .subscribe(
+              success -> log.debug("#Retry - success save to dead_letter_process on {} - {}",
+                  retryRequest.processType(), retryRequest.processName()),
+              error -> log.error("#Retry - failed save to dead_letter_process on {} - {}, error {}, cause {}",
+                  retryRequest.processType(), retryRequest.processName(), error.getMessage(), ErrorHelper.getRootCause(error))
+          );
+    }
+  }
+
+  private <S, T, E extends Throwable> Context updateContext(RetryRequest<S, T, E> retryRequest,
+      Context context) {
+    context.put(RetryConstant.REQUEST, retryRequest.request());
+    context.put(RetryConstant.REQUEST_ID, tracerHelper.getBaggage(HeaderConstant.REQUEST_ID));
+    context.put(RetryConstant.PROCESS_TYPE, retryRequest.processType());
+    context.put(RetryConstant.PROCESS_NAME, retryRequest.processName());
+    return context;
+  }
+
 }

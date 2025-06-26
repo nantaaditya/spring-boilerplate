@@ -3,6 +3,7 @@ package com.nantaaditya.example;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
+import com.nantaaditya.example.properties.ReactorEventProperties;
 import com.nantaaditya.example.properties.RetryProperties;
 import com.nantaaditya.example.properties.SchedulerProperties;
 import org.springframework.boot.SpringApplication;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Hooks;
     AsyncTaskProperties.class,
     ClientProperties.class,
     LogProperties.class,
+    ReactorEventProperties.class,
     RetryProperties.class,
     SchedulerProperties.class
 })

@@ -1,9 +1,12 @@
 package com.nantaaditya.example.entity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nantaaditya.example.model.request.RetryRequest;
 import io.r2dbc.spi.Row;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
@@ -22,6 +25,21 @@ public class DeadLetterProcess extends BaseEntity<Long> {
   @Column
   private byte[] payload;
   private boolean processed;
+
+  @SneakyThrows
+  public static DeadLetterProcess create(RetryRequest retryRequest, Throwable throwable, ObjectMapper objectMapper) {
+    return DeadLetterProcess.builder()
+        .createdBy(retryRequest.processName())
+        .createdDate(System.currentTimeMillis())
+        .updatedBy(retryRequest.processName())
+        .updatedDate(System.currentTimeMillis())
+        .version(0l)
+        .processType(retryRequest.processType())
+        .processName(retryRequest.processName())
+        .lastError(throwable.getMessage())
+        .payload(objectMapper.writeValueAsBytes(retryRequest.request()))
+        .build();
+  }
 
   public static DeadLetterProcess from(Row row) {
     return DeadLetterProcess.builder()
