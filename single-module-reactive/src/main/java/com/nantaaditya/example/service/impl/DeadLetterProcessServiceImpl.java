@@ -4,6 +4,7 @@ import com.nantaaditya.example.helper.CustomQueryHelper;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.ReactorHelper;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
+import com.nantaaditya.example.helper.SchedulerHelper;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import com.nantaaditya.example.service.DeadLetterProcessService;
@@ -13,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Service
@@ -24,6 +24,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   private final CustomQueryHelper customQueryHelper;
   private final ReactorHelper reactorHelper;
   private final RetryProcessorHelper retryProcessorHelper;
+  private final SchedulerHelper schedulerHelper;
 
   @Override
   public Mono<Boolean> remove(int days) {
@@ -33,7 +34,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
         () -> deadLetterProcessRepository.deleteByCreatedDateLessThanAndProcessedIsFalse(
             LocalDateTime.now().atZone(DateTimeHelper.ZONE_ID).minusDays(days).toInstant().toEpochMilli()
         ),
-        Schedulers.immediate()
+        schedulerHelper.from("default-async")
       ));
   }
 
@@ -48,7 +49,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
             AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(request.processType(), request.processName());
             processor.execute(deadLetterProcesses);
           }),
-        Schedulers.immediate()
+          schedulerHelper.from("default-async")
       ));
   }
 }

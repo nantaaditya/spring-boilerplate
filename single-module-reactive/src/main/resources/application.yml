@@ -41,3 +41,20 @@ apps:
     enable-trace-log: ${ENABLE_TRACE_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
+  scheduler.configurations:
+    default-async:
+      scheduler-type: BOUNDED_ELASTIC
+      bounded-elastic:
+        name: default-async
+        daemon: true
+        core-pool-size: 5
+        queue-size: 10
+        ttl-in-seconds: 60
+    retry-listener:
+      scheduler-type: BOUNDED_ELASTIC
+      bounded-elastic:
+        name: retry-listener
+        daemon: true
+        core-pool-size: 10
+        queue-size: 20
+        ttl-in-seconds: 60
