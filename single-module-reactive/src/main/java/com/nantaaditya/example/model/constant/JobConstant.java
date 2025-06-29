@@ -3,16 +3,15 @@ package com.nantaaditya.example.model.constant;
 import lombok.Getter;
 
 @Getter
-public enum RetryConstant {
-
+public enum JobConstant {
   REQUEST("request"),
   REQUEST_ID("request_id"),
-  PROCESS_TYPE("process_type"),
-  PROCESS_NAME("process_name");
+  ERROR_MESSAGE("error_message"),
+  ERROR_ROOT_CAUSE("error_root_cause");
 
   private String name;
 
-  RetryConstant(String name) {
+  JobConstant(String name) {
     this.name = name;
   }
 }
