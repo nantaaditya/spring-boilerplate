@@ -1,13 +1,16 @@
 package com.nantaaditya.example.interceptor;
 
-import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.EventLogHelper;
+import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
+import com.nantaaditya.example.model.constant.ObservationConstant;
 import com.nantaaditya.example.model.dto.ContextDTO;
-import io.micrometer.context.ContextRegistry;
+import io.micrometer.common.KeyValue;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.Observation.Event;
 import java.time.ZonedDateTime;
-import org.slf4j.MDC;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
@@ -24,8 +27,8 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
+@Slf4j
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class AppFilter implements WebFilter {
@@ -37,7 +40,7 @@ public class AppFilter implements WebFilter {
   private EventLogHelper eventLogHelper;
 
   @Autowired
-  private ContextHelper contextHelper;
+  private ObservationHelper observationHelper;
 
   @Override
   public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -45,45 +48,50 @@ public class AppFilter implements WebFilter {
     ServerHttpResponse response = exchange.getResponse();
     ContextDTO contextDTO = decorateContext(request);
 
-    contextHelper.put(contextDTO);
+    observationHelper.getContextHelper().put(contextDTO);
     decorateResponseHeaders(request, response);
-    decorateMDC(contextDTO);
+    decorateBaggage(contextDTO);
 
-    return DataBufferUtils.join(request.getBody())
-        .cast(DataBuffer.class)
-        .switchIfEmpty(Mono.fromCallable(() ->
-          exchange.getResponse().bufferFactory().allocateBuffer(0)
-        ))
-        .flatMap(dataBuffer -> {
-          byte[] bodyBytes = new byte[dataBuffer.readableByteCount()];
+    Observation.Context observationContext = observationHelper.createApiContext(contextDTO);
+    Observation observation = Observation.start(
+        ObservationConstant.from(contextDTO.getPath()).getName(),
+        () -> observationContext,
+        observationHelper.getObservationRegistry()
+    );
 
-          setCachedAttribute(exchange, dataBuffer, bodyBytes);
-          Flux<DataBuffer> cachedBody = getDataBufferFlux(exchange, bodyBytes);
-          ServerHttpRequest mutatedRequest = cachedServerHttpRequest(request, cachedBody);
-          ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
+    return Mono.usingWhen(
+      Mono.fromCallable(() -> observation.openScope()),
 
-          return chain.filter(mutatedExchange)
-              .doFinally(signalType -> eventLogHelper.save(mutatedExchange));
-        })
-        .contextWrite(Context.of("context", contextDTO))
-        .contextWrite(Context.of(HeaderConstant.CLIENT_ID.getHeader(), contextDTO.getClientId()))
-        .contextWrite(Context.of(HeaderConstant.REQUEST_ID.getHeader(), contextDTO.getRequestId()));
+      scope -> DataBufferUtils.join(request.getBody())
+          .cast(DataBuffer.class)
+          .switchIfEmpty(Mono.fromCallable(() ->
+              exchange.getResponse().bufferFactory().allocateBuffer(0)
+          ))
+          .flatMap(dataBuffer -> {
+            byte[] bodyBytes = new byte[dataBuffer.readableByteCount()];
+            setCachedAttribute(exchange, dataBuffer, bodyBytes);
+            Flux<DataBuffer> cachedBody = getDataBufferFlux(exchange, bodyBytes);
+            ServerHttpRequest mutatedRequest = cachedServerHttpRequest(request, cachedBody);
+            ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
+
+            return chain.filter(mutatedExchange)
+                .doOnError(error -> doObservationOnError(error, observationContext, observation))
+                .doFinally(signal -> {
+                  eventLogHelper.save(mutatedExchange, contextDTO);
+                  observation.stop();
+                });
+          }),
+
+      scope -> Mono.fromRunnable(scope::close)
+    )
+    .contextWrite(ctx ->
+      ctx.put("context", contextDTO)
+    );
   }
 
-  private static void decorateMDC(ContextDTO contextDTO) {
-    ContextRegistry.getInstance()
-        .registerThreadLocalAccessor(
-          HeaderConstant.CLIENT_ID.getHeader(),
-          () -> MDC.get(HeaderConstant.CLIENT_ID.getHeader()),
-    value -> MDC.put(HeaderConstant.CLIENT_ID.getHeader(), contextDTO.getClientId()),
-          () -> MDC.remove(HeaderConstant.CLIENT_ID.getHeader()));
-
-    ContextRegistry.getInstance()
-        .registerThreadLocalAccessor(
-            HeaderConstant.REQUEST_ID.getHeader(),
-            () -> MDC.get(HeaderConstant.REQUEST_ID.getHeader()),
-            value -> MDC.put(HeaderConstant.REQUEST_ID.getHeader(), contextDTO.getRequestId()),
-            () -> MDC.remove(HeaderConstant.REQUEST_ID.getHeader()));
+  private void decorateBaggage(ContextDTO contextDTO) {
+    observationHelper.getTracerHelper().setBaggage(HeaderConstant.REQUEST_ID.getHeader(), contextDTO.getRequestId());
+    observationHelper.getTracerHelper().setBaggage(HeaderConstant.CLIENT_ID.getHeader(), contextDTO.getClientId());
   }
 
   private void decorateResponseHeaders(ServerHttpRequest request, ServerHttpResponse response) {
@@ -123,5 +131,13 @@ public class AppFilter implements WebFilter {
         return cachedBody;
       }
     };
+  }
+
+  private <C extends Observation.Context> void doObservationOnError(Throwable exception, C context,
+      Observation observation) {
+    log.error("#Observation - error {}", exception.getMessage());
+    context.addLowCardinalityKeyValue(KeyValue.of("error", exception.getClass().getName()));
+    observation.event(Event.of("error", exception.getClass().getName()));
+    observation.error(exception);
   }
 }

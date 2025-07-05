@@ -2,6 +2,7 @@ package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.model.dto.ContextDTO;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.UnaryOperator;
@@ -40,6 +41,10 @@ public class ContextHelper {
     } catch (Exception ex) {
       log.error("#Context - failed to update {} cause {}", requestId, ErrorHelper.getRootCause(ex));
     }
+  }
+
+  public List<ContextDTO> list() {
+    return contexts.values().stream().toList();
   }
 
   public ContextDTO get(String requestId) {

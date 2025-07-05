@@ -2,7 +2,6 @@ package com.nantaaditya.example.helper;
 
 import com.google.gson.Gson;
 import com.nantaaditya.example.entity.EventLog;
-import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import com.nantaaditya.example.properties.LogProperties;
 import com.nantaaditya.example.repository.EventLogRepository;
@@ -23,26 +22,19 @@ public class EventLogHelper {
   private final LogProperties logProperties;
   private final Gson gson;
   private final ContextHelper contextHelper;
-  private final TracerHelper tracerHelper;
 
-  public void save(ServerWebExchange exchange) {
+  public void save(ServerWebExchange exchange, ContextDTO context) {
     try {
-      String requestId = tracerHelper.getBaggage(HeaderConstant.REQUEST_ID);
-      if (requestId == null) {
-        log.warn("#EventLog - requestId is null");
-        return;
-      }
-
-      ContextDTO context = contextHelper.get(requestId);
       if (context == null) {
         log.warn("#EventLog - context is null");
         return;
       }
 
-      byte[] additionalData = contextHelper.getAdditionalData(requestId);
+      byte[] additionalData = contextHelper.getAdditionalData(context.getRequestId());
 
       if (logProperties.isIgnoredTraceLogPath(context.getPath())) {
         log.debug("#EventLog - ignored trace log path");
+        contextHelper.cleanUp(context.getRequestId());
         return;
       }
 
@@ -56,7 +48,7 @@ public class EventLogHelper {
               success -> log.debug("#EventLog - success save event log"),
               error -> log.error("#EventLog - error save event log {}, cause {}",
                   error.getMessage(), ErrorHelper.getRootCause(error)),
-              () -> contextHelper.cleanUp(requestId)
+              () -> contextHelper.cleanUp(context.getRequestId())
           );
     } catch (Exception e) {
       log.error("#EventLog - failed save event log {}, cause {}", e.getMessage(), ErrorHelper.getRootCause(e));

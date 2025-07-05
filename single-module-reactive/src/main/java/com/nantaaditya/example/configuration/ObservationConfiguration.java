@@ -1,9 +1,8 @@
 package com.nantaaditya.example.configuration;
 
-import brave.context.slf4j.MDCScopeDecorator;
-import brave.propagation.CurrentTraceContext;
-import brave.propagation.ThreadLocalCurrentTraceContext;
+import brave.baggage.BaggageField;
 import com.nantaaditya.example.listener.AppObservationListener;
+import com.nantaaditya.example.model.constant.HeaderConstant;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
 import org.springframework.context.annotation.Bean;
@@ -27,9 +26,12 @@ public class ObservationConfiguration {
   }
 
   @Bean
-  public CurrentTraceContext currentTraceContext() {
-    return ThreadLocalCurrentTraceContext.newBuilder()
-        .addScopeDecorator(MDCScopeDecorator.get())
-        .build();
+  public BaggageField clientIdBaggage() {
+    return BaggageField.create(HeaderConstant.CLIENT_ID.getHeader());
+  }
+
+  @Bean
+  public BaggageField requestIdBaggage() {
+    return BaggageField.create(HeaderConstant.REQUEST_ID.getHeader());
   }
 }
