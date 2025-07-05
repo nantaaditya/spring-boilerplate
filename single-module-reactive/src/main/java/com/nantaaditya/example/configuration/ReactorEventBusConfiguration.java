@@ -21,24 +21,28 @@ public class ReactorEventBusConfiguration {
 
   @PostConstruct
   public void createSinks() {
-    retryProperties.configurations()
-        .forEach((key, value) -> {
-          reactorEventBusHelper.createSinks(
-              key + RetryHelper.BEFORE_SUFFIX_EVENT,
-              Sinks.many().multicast().onBackpressureBuffer(DEFAULT_BUFFER_SIZE)
-          );
+    if (null != retryProperties.configurations()) {
+      retryProperties.configurations()
+          .forEach((key, value) -> {
+            reactorEventBusHelper.createSinks(
+                key + RetryHelper.BEFORE_SUFFIX_EVENT,
+                Sinks.many().multicast().onBackpressureBuffer(DEFAULT_BUFFER_SIZE)
+            );
 
-          reactorEventBusHelper.createSinks(
-              key + RetryHelper.AFTER_SUFFIX_EVENT,
-              Sinks.many().multicast().onBackpressureBuffer(DEFAULT_BUFFER_SIZE)
-          );
-        });
+            reactorEventBusHelper.createSinks(
+                key + RetryHelper.AFTER_SUFFIX_EVENT,
+                Sinks.many().multicast().onBackpressureBuffer(DEFAULT_BUFFER_SIZE)
+            );
+          });
+    }
 
-    reactorEventProperties.configurations()
-        .forEach((key, value) -> {
-          reactorEventBusHelper.createSinks(
-              key,
-              Sinks.many().multicast().onBackpressureBuffer(value.bufferSize()));
-        });
+    if (null != reactorEventProperties.configurations()) {
+      reactorEventProperties.configurations()
+          .forEach((key, value) -> {
+            reactorEventBusHelper.createSinks(
+                key,
+                Sinks.many().multicast().onBackpressureBuffer(value.bufferSize()));
+          });
+    }
   }
 }

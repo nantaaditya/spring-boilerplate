@@ -23,6 +23,8 @@ public class RetryEventListener {
 
   @EventListener(ApplicationReadyEvent.class)
   public void retryEventSubscriber() {
+    if (retryProperties.configurations() == null) return;
+
     for (String retryKey : retryProperties.configurations().keySet()) {
       consumeEvent(retryKey, RetryHelper.BEFORE_SUFFIX_EVENT);
       consumeEvent(retryKey, RetryHelper.AFTER_SUFFIX_EVENT);
