@@ -1,8 +1,6 @@
 package com.nantaaditya.example.api.internal;
 
-import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.helper.ResponseHelper;
-import com.nantaaditya.example.model.constant.ObservationConstant;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.model.response.BaseResponse;
 import com.nantaaditya.example.service.DeadLetterProcessService;
@@ -24,19 +22,14 @@ import reactor.core.publisher.Mono;
 public class DeadLetterProcessController {
 
   private final DeadLetterProcessService deadLetterProcessService;
-  private final ObservationHelper observationHelper;
   private final ResponseHelper responseHelper;
 
   @DeleteMapping(
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Mono<BaseResponse<Boolean>> removeObsoleteDeadLetterProcess(@RequestParam int days) {
-    return observationHelper.observeApi(
-      ObservationConstant.INTERNAL_API,
-      days,
-      request -> deadLetterProcessService.remove(request)
-          .map(responseHelper::success)
-    );
+    return deadLetterProcessService.remove(days)
+      .map(responseHelper::success);
   }
 
   @PutMapping(
@@ -44,11 +37,7 @@ public class DeadLetterProcessController {
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Mono<BaseResponse<Boolean>> retry(@RequestBody @Valid RetryDeadLetterProcessRequest request) {
-    return observationHelper.observeApi(
-      ObservationConstant.INTERNAL_API,
-      request,
-      r -> deadLetterProcessService.retry(r)
-      .map(responseHelper::success)
-    );
+    return deadLetterProcessService.retry(request)
+      .map(responseHelper::success);
   }
 }

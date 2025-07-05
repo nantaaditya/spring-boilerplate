@@ -1,8 +1,6 @@
 package com.nantaaditya.example.api.internal;
 
-import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.helper.ResponseHelper;
-import com.nantaaditya.example.model.constant.ObservationConstant;
 import com.nantaaditya.example.model.response.BaseResponse;
 import com.nantaaditya.example.service.EventLogService;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +18,13 @@ import reactor.core.publisher.Mono;
 public class EventLogController {
 
   private final EventLogService eventLogService;
-  private final ObservationHelper observationHelper;
   private final ResponseHelper responseHelper;
 
   @DeleteMapping(
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Mono<BaseResponse<Boolean>> removeObsoleteEventLog(@RequestParam int days) {
-    return observationHelper.observeApi(
-      ObservationConstant.INTERNAL_API,
-      days,
-      request -> eventLogService.remove(request)
-          .map(responseHelper::success)
-    );
+    return eventLogService.remove(days)
+      .map(responseHelper::success);
   }
 }
