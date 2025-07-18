@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
 import java.sql.SQLException;
@@ -35,6 +36,9 @@ class ApiExceptionHandlerTest {
 
   @Mock
   private MethodValidationResult methodValidationResult;
+
+  @Mock
+  private ObservationHelper observationHelper;
 
   @BeforeEach
   void setUp() throws JsonProcessingException {

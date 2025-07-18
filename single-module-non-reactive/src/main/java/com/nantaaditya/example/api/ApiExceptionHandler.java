@@ -3,20 +3,25 @@ package com.nantaaditya.example.api;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.helper.ContextHelper;
+import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
+import com.nantaaditya.example.model.response.Response.ErrorMetadata;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.exception.SQLGrammarException;
 import org.postgresql.util.PSQLException;
 import org.springframework.core.MethodParameter;
@@ -39,97 +44,108 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 public class ApiExceptionHandler {
 
   private final ObjectMapper objectMapper;
+  private final ObservationHelper observationHelper;
 
-  private static final String ERROR_LOG = "#ApiError - exception, ";
+  private static final String ERROR_LOG = "#ApiError - got error exception: ";
   private static final String EXCEPTION_KEY = "exception";
 
   @ResponseBody
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public Response<Object> methodArgumentNotValid(MethodArgumentNotValidException exception) {
-    log.error(ERROR_LOG, exception);
-
-    Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, from(exception));
-    Map<String, List<String>> errorMaps = from(exception);
-    ContextHelper.put(getErrors(errorMaps));
-
-    return response;
+    return toError(exception, error -> {
+      Map<String, List<String>> errors = from(error);
+      Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, errors);
+      return Pair.of(errors, response);
+    });
   }
 
   @ResponseBody
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   @ExceptionHandler(NoHandlerFoundException.class)
   public Response<Object> noHandlerException(NoHandlerFoundException exception) {
-    log.error(ERROR_LOG, exception);
-
-    Map<String, List<String>> errors = Map.of("endpoint", List.of("not available"));
-    Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
-    ContextHelper.put(getErrors(errors));
-    return response;
+    return toError(exception, error -> {
+      Map<String, List<String>> errors = Map.of("endpoint", List.of("not available"));
+      Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
+      return Pair.of(errors, response);
+    });
   }
 
   @ExceptionHandler(SQLGrammarException.class)
   @ResponseBody
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-  public Response<Object> sqlException(SQLGrammarException ex) {
-    log.error(ERROR_LOG, ex);
-    Response<Object> response = Response.failed(ResponseCode.INTERNAL_ERROR, Collections.emptyMap());
-    ContextHelper.put(getErrors(Map.of(EXCEPTION_KEY, List.of(ex.getMessage()))));
-    return response;
+  public Response<Object> sqlException(SQLGrammarException exception) {
+    return toBaseError(exception);
   }
 
   @ExceptionHandler(PSQLException.class)
   @ResponseBody
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-  public Response<Object> psqlException(PSQLException ex) {
-    log.error(ERROR_LOG, ex);
-    Response<Object> response = Response.failed(ResponseCode.INTERNAL_ERROR, Collections.emptyMap());
-    ContextHelper.put(getErrors(Map.of(EXCEPTION_KEY, List.of(ex.getMessage()))));
-    return response;
+  public Response<Object> psqlException(PSQLException exception) {
+    return toBaseError(exception);
   }
 
   @ResponseBody
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   @ExceptionHandler(Throwable.class)
   public Response<Object> throwable(Throwable throwable) {
-    log.error(ERROR_LOG, throwable);
-    ContextHelper.put(getErrors(Map.of(EXCEPTION_KEY, List.of(throwable.getMessage()))));
-    return Response.failed(ResponseCode.INTERNAL_ERROR, Collections.emptyMap());
+    return toBaseError(throwable);
   }
 
   @ResponseBody
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   @ExceptionHandler(MissingServletRequestParameterException.class)
   public Response<Object> missingServletRequestParameterException(MissingServletRequestParameterException exception) {
-    log.error(ERROR_LOG, exception);
-
-    Map<String, List<String>> errors = Map.of(exception.getParameterName(), List.of("required"));
-    Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
-    ContextHelper.put(getErrors(errors));
-
-    return response;
+    return toError(exception, error -> {
+      Map<String, List<String>> errors = Map.of(exception.getParameterName(), List.of("missing"));
+      Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
+      return Pair.of(errors, response);
+    });
   }
 
   @ResponseBody
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   @ExceptionHandler(HandlerMethodValidationException.class)
   public Response<Object> handlerMethodValidationException(HandlerMethodValidationException exception) {
-    log.error(ERROR_LOG, exception);
+    return toError(exception, error -> {
+      List<String> errorKeys = error.getParameterValidationResults()
+          .stream()
+          .map(ParameterValidationResult::getMethodParameter)
+          .map(MethodParameter::getParameter)
+          .map(Parameter::getName)
+          .toList();
+      Map<String, List<String>> errors = new HashMap<>();
+      for (String errorKey : errorKeys) {
+        errors.put(errorKey, List.of("NotValid"));
+      }
+      Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, errors);
+      return Pair.of(errors, response);
+    });
+  }
 
-    List<String> errorKeys = exception.getParameterValidationResults()
-        .stream()
-        .map(ParameterValidationResult::getMethodParameter)
-        .map(MethodParameter::getParameter)
-        .map(Parameter::getName)
-        .toList();
-    Map<String, List<String>> errors = new HashMap<>();
-    for (String errorKey : errorKeys) {
-      errors.put(errorKey, List.of("NotValid"));
-    }
-    Response<Object> response = Response.failed(ResponseCode.INVALID_PARAMS, errors);
+  private Response<Object> toBaseError(Throwable throwable) {
+    return toError(throwable, error -> {
+      Map<String, List<String>> errors = Map.of(EXCEPTION_KEY, List.of(error.getMessage()));
+      Response<Object> response = Response.failed(ResponseCode.INTERNAL_ERROR,
+          Collections.emptyMap());
+      return Pair.of(errors, response);
+    });
+  }
+
+  private <S extends Throwable> Response<Object> toError(S source,
+      Function<S, Pair<Map<String, List<String>>, Response<Object>>> function) {
+    log.error(ERROR_LOG, source);
+
+    Pair<Map<String, List<String>>, Response<Object>> pair = function.apply(source);
+
+    Map<String, List<String>> errors = Optional.ofNullable(pair.getRight())
+        .map(Response::getError)
+        .map(ErrorMetadata::getViolations)
+        .orElseGet(pair::getLeft);
     ContextHelper.put(getErrors(errors));
+    observationHelper.publishEvent(EXCEPTION_KEY, source.getClass().getName());
 
-    return response;
+    return pair.getRight();
   }
 
   private String getErrors(Map<String, List<String>> violations) {
@@ -141,8 +157,8 @@ public class ApiExceptionHandler {
     }
   }
 
-  private Map<String, List<String>> from(MethodArgumentNotValidException ex) {
-    BindingResult result = ex.getBindingResult();
+  private Map<String, List<String>> from(MethodArgumentNotValidException exception) {
+    BindingResult result = exception.getBindingResult();
     if (!result.hasFieldErrors()) {
       return Collections.emptyMap();
     }
@@ -164,7 +180,7 @@ public class ApiExceptionHandler {
           .stream()
           .collect(Collectors.toMap(
               Entry::getKey,
-              entry -> new ArrayList<>(entry.getValue())
+              entry -> new LinkedList<>(entry.getValue())
           ));
     }
   }
