@@ -1,7 +1,6 @@
 package com.nantaaditya.example.api;
 
 import com.nantaaditya.example.client.MockClient;
-import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.request.ExampleRequest;
 import com.nantaaditya.example.model.response.ExampleResponse;
 import com.nantaaditya.example.model.response.MockClientResponse;
@@ -22,15 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/example")
 public class ExampleController {
 
-  private final ObservationHelper observationHelper;
   private final MockClient mockClient;
 
   @GetMapping(
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Response<String> get() {
-    return observationHelper.observeApi(
-        "Hello world", Response::success);
+    return Response.success("Hello world");
   }
 
   @PostMapping(
@@ -38,10 +35,8 @@ public class ExampleController {
       produces = MediaType.APPLICATION_JSON_VALUE
   )
   public Response<ExampleResponse> post(@Valid @RequestBody ExampleRequest request) {
-    return observationHelper.observeApi(request, r -> {
-      ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
-      return Response.success(exampleResponse);
-    });
+    ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
+    return Response.success(exampleResponse);
   }
 
   @GetMapping(
