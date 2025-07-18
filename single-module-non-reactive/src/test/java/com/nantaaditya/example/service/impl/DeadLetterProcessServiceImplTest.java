@@ -38,11 +38,11 @@ class DeadLetterProcessServiceImplTest {
 
   @Test
   void remove() {
-    doNothing().when(deadLetterProcessRepository).deleteByCreatedDateLessThan(anyLong());
+    doNothing().when(deadLetterProcessRepository).deleteByCreatedDateLessThanAndProcessedIsTrue(anyLong());
 
     deadLetterProcessService.remove(30);
 
-    verify(deadLetterProcessRepository).deleteByCreatedDateLessThan(anyLong());
+    verify(deadLetterProcessRepository).deleteByCreatedDateLessThanAndProcessedIsTrue(anyLong());
   }
 
   @Test
