@@ -17,4 +17,13 @@ public enum ResponseCode {
     this.code = code;
     this.message = message;
   }
+
+  public static ResponseCode fromCode(String code) {
+    for (ResponseCode responseCode : ResponseCode.values()) {
+      if (responseCode.getCode().equals(code)) {
+        return responseCode;
+      }
+    }
+    return null;
+  }
 }

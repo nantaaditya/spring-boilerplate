@@ -1,6 +1,7 @@
 package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.model.constant.FeatureConstant;
+import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
@@ -20,12 +21,17 @@ public class ObservationHelper {
 
   private final ObservationRegistry observationRegistry;
 
+  private static final String ERROR_KEY = "error";
+  private static final String RESPONSE_CODE = "responseCode";
+
   public Context createApiContext(ContextDTO contextDTO) {
     Context observationContext = new Context();
 
     FeatureConstant feature = FeatureConstant.get(contextDTO.method(), contextDTO.path());
     if (feature != null) {
       observationContext.addLowCardinalityKeyValue(KeyValue.of("feature", feature.name()));
+    } else {
+      observationContext.addLowCardinalityKeyValue(KeyValue.of("feature", contextDTO.getUnknownFeature()));
     }
 
     if (contextDTO.requestId() != null) {
@@ -44,5 +50,19 @@ public class ObservationHelper {
 
     observation.event(Event.of(key, value));
   }
+
+  public void decorateErrorObservation(ObservationWrapper observationWrapper, Throwable throwable, ResponseCode responseCode) {
+    Observation observation = observationWrapper.getObservation();
+    if (observation != null) {
+      String exceptionClass = throwable.getClass().getName();
+      observation.lowCardinalityKeyValue(ERROR_KEY, exceptionClass);
+      if (responseCode != null) {
+        observation.lowCardinalityKeyValue(RESPONSE_CODE, responseCode.name());
+      }
+      publishEvent(ERROR_KEY, exceptionClass);
+      observation.error(throwable);
+    }
+  }
+
 }
 

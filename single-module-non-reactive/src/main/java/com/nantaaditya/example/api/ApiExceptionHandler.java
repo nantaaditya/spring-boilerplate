@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.ObservationHelper;
+import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
 import com.nantaaditya.example.model.response.Response.ErrorMetadata;
@@ -45,6 +46,7 @@ public class ApiExceptionHandler {
 
   private final ObjectMapper objectMapper;
   private final ObservationHelper observationHelper;
+  private final ObservationWrapper observationWrapper;
 
   private static final String ERROR_LOG = "#ApiError - got error exception: ";
   private static final String EXCEPTION_KEY = "exception";
@@ -137,15 +139,21 @@ public class ApiExceptionHandler {
     log.error(ERROR_LOG, source);
 
     Pair<Map<String, List<String>>, Response<Object>> pair = function.apply(source);
+    Map<String, List<String>> errorList = pair.getLeft();
+    Response<Object> response = pair.getRight();
 
-    Map<String, List<String>> errors = Optional.ofNullable(pair.getRight())
+    Map<String, List<String>> errors = Optional.ofNullable(response)
         .map(Response::getError)
         .map(ErrorMetadata::getViolations)
-        .orElseGet(pair::getLeft);
+        .orElseGet(() -> errorList);
     ContextHelper.put(getErrors(errors));
-    observationHelper.publishEvent(EXCEPTION_KEY, source.getClass().getName());
+    observationHelper.decorateErrorObservation(
+        observationWrapper,
+        source,
+        ResponseCode.fromCode(response.getResponse().getCode())
+    );
 
-    return pair.getRight();
+    return response;
   }
 
   private String getErrors(Map<String, List<String>> violations) {

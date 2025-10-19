@@ -3,6 +3,7 @@ package com.nantaaditya.example.interceptor;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.ObservationHelper;
+import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.constant.ObservationConstant;
 import com.nantaaditya.example.model.dto.CacheBodyRequest;
@@ -14,6 +15,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -30,6 +32,9 @@ public class HeaderFilter extends OncePerRequestFilter {
 
   @Autowired
   private ObservationHelper observationHelper;
+
+  @Autowired
+  private ObservationWrapper observationWrapper;
 
   @Value("${server.servlet.context-path}")
   private String contextPath;
@@ -51,18 +56,20 @@ public class HeaderFilter extends OncePerRequestFilter {
         () -> observationHelper.createApiContext(context),
         observationHelper.getObservationRegistry()
     );
+    observationWrapper.setObservation(observation);
 
     Map<String, String> contextMap = MDC.getCopyOfContextMap();
 
     try (Observation.Scope scope = observation.openScope()) {
       MDC.setContextMap(contextMap);
-      filterChain.doFilter(httpServletRequest, response);
-    } catch (Exception ex) {
-      log.error("#Observation - error {}", ex.getMessage());
-      decorateErrorObservation(ex, observation);
-      throw ex;
+      filterChain.doFilter(httpServletRequest, getResponseWrapper(response, observation));
+    }  catch (Throwable throwable) {
+      log.error("#Observation - error {}", throwable.getMessage());
+      observationHelper.decorateErrorObservation(observationWrapper, throwable, null);
+      throw throwable;
     } finally {
-      observation.stop();
+      if (!observation.isNoop()) observation.stop();
+      observationWrapper.clear();
     }
   }
 
@@ -85,11 +92,18 @@ public class HeaderFilter extends OncePerRequestFilter {
     response.addHeader(HeaderConstant.RECEIVED_TIME.getHeader(), contextDTO.receivedTime());
   }
 
-  private void decorateErrorObservation(Exception ex, Observation observation) {
-    String exceptionClass = ex.getClass().getName();
-    observation.getContext().addLowCardinalityKeyValue(KeyValue.of(ERROR_KEY, exceptionClass));
-    observation.event(Event.of(ERROR_KEY, exceptionClass));
-    observation.error(ex);
+  private HttpServletResponseWrapper getResponseWrapper(HttpServletResponse httpServletResponse, Observation observation) {
+    return new HttpServletResponseWrapper(httpServletResponse) {
+      @Override
+      public void flushBuffer() throws IOException {
+        super.flushBuffer();
+        if (observation != null && !observation.isNoop()) {
+          observation.stop();
+        }
+        observationWrapper.clear();
+      }
+    };
   }
+
 }
 
