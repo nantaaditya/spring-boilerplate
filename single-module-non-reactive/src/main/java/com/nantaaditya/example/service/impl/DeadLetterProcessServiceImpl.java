@@ -8,8 +8,6 @@ import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,7 +29,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   @Async("defaultAsyncTaskExecutor")
   public void remove(int days) {
     LocalDateTime now = LocalDateTime.now();
-    deadLetterProcessRepository.deleteByCreatedDateLessThan(now.minusDays(days)
+    deadLetterProcessRepository.deleteByCreatedDateLessThanAndProcessedIsTrue(now.minusDays(days)
         .atZone(DateTimeHelper.ZONE_ID).toInstant().toEpochMilli());
   }
 
@@ -51,18 +49,17 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
       return;
     }
 
-    Map<String, List<DeadLetterProcess>> deadLetterProcesses = deadLetterProcessPage.getContent()
-        .stream()
-        .collect(Collectors.groupingBy(d -> d.getProcessType() + "|" + d.getProcessName()));
+    List<DeadLetterProcess> deadLetterProcesses = deadLetterProcessPage.getContent();
+    executeRetryProcess(request, deadLetterProcesses);
 
-    for (Map.Entry<String, List<DeadLetterProcess>> entry : deadLetterProcesses.entrySet()) {
-      executeRetryProcess(entry.getKey(), entry.getValue());
-    }
   }
 
-  private void executeRetryProcess(String key, List<DeadLetterProcess> deadLetterProcesses) {
-    String [] processKey = key.split("\\|");
-    AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(processKey[0], processKey[1]);
+  public void executeRetryProcess(RetryDeadLetterProcessRequest request, List<DeadLetterProcess> deadLetterProcesses) {
+    AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(request.processType(), request.processName());
+    if (processor == null) {
+      log.warn("#DeadLetterProcess - no retry processor handler found with {} - {}", request.processType(), request.processName());
+      return;
+    }
     processor.execute(deadLetterProcesses);
   }
 }

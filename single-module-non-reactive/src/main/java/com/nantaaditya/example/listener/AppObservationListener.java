@@ -1,49 +1,44 @@
 package com.nantaaditya.example.listener;
 
 import com.nantaaditya.example.model.constant.ObservationConstant;
+import com.nantaaditya.example.properties.LogProperties;
 import io.micrometer.observation.Observation.Context;
 import io.micrometer.observation.Observation.Event;
 import io.micrometer.observation.ObservationHandler;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Slf4j
+@Component
+@RequiredArgsConstructor
 public class AppObservationListener implements ObservationHandler<Context> {
+
+  private final LogProperties logProperties;
 
   @Override
   public boolean supportsContext(Context context) {
-    return true;
+    return logProperties.enableMetricLog() && isEligibleToObserved(context);
   }
 
   @Override
   public void onStart(Context context) {
-    if (!isEligibleToObserved(context)) {
-      return;
-    }
     log.info("#Metrics - start {}", context);
   }
 
   @Override
   public void onEvent(Event event, Context context) {
-    if (!isEligibleToObserved(context)) {
-      return;
-    }
     log.info("#Metrics - event {}", event);
   }
 
   @Override
   public void onError(Context context) {
-    if (!isEligibleToObserved(context)) {
-      return;
-    }
     log.error("#Metrics - error {}", context);
   }
 
   @Override
   public void onStop(Context context) {
-    if (!isEligibleToObserved(context)) {
-      return;
-    }
     log.info("#Metrics - stop {}", context);
   }
 

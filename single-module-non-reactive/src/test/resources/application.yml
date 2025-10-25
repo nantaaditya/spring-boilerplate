@@ -95,9 +95,6 @@ apps:
       max-attempt: 3
   client:
     log-format: http
-    pooling:
-      maxTotal: 10
-      maxPerRoute: 5
     configurations:
       mock:
         host: https://jsonplaceholder.typicode.com
@@ -105,5 +102,8 @@ apps:
           connectTimeOut: 2000
           readTimeOut: 2000
           connectRequestTimeOut: 2000
+        pooling:
+          maxTotal: 10
+          maxPerRoute: 5
         enable-log: true
         disable-ssl-verification: true

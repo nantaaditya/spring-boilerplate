@@ -24,7 +24,7 @@ spring:
       minimum-idle: ${HIKARI_MIN_POOL:10}
       maximum-pool-size: ${HIKARI_MAX_POOL:25}
       connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:5000}
-      idle-timeout: ${HIKARI_IDLE_TIMEOUT:60000}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:30000}
       max-lifetime: ${HIKARI_MAX_LIFETIME:300000}
 
   jpa:
@@ -90,6 +90,7 @@ apps:
     max-retry-rejected-task: ${MAX_REJECT_TASK:100}
   log:
     enable-trace-log: ${ENABLE_TRACE_LOG:true}
+    enable-metric-log: ${ENABLE_METRIC_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
   swagger:
@@ -104,9 +105,6 @@ apps:
       retryable-exceptions: ${DEFAULT_RETRY_EXCEPTIONS:java.lang.IllegalArgumentException:true}
   client:
     log-format: ${HTTP_LOG_FORMAT:http}
-    pooling:
-      max-total: ${DEFAULT_CLIENT_MAX_IDLE_CONNECTIONS:20}
-      max-per-route: ${DEFAULT_CLIENT_MAX_IDLE_CONNECTION_PER_ROUTE:5}
     configurations:
       mock:
         host: ${MOCK_CLIENT_HOST:https://jsonplaceholder.typicode.com}
@@ -114,6 +112,9 @@ apps:
           connect-time-out: ${MOCK_CLIENT_CONNECT_TIMEOUT:2000}
           read-time-out: ${MOCK_CLIENT_READ_TIMEOUT:2000}
           connect-request-time-out: ${MOCK_CLIENT_CONNECT_REQUEST_TIMEOUT:2000}
+        pooling:
+          max-total: ${MOCK_CLIENT_MAX_IDLE_CONNECTIONS:10}
+          max-per-route: ${MOCK_CLIENT_MAX_IDLE_CONNECTION_PER_ROUTE:5}
         enable-log: true
         disable-ssl-verification: true
 

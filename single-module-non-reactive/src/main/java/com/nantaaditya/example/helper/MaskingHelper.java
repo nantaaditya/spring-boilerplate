@@ -3,6 +3,7 @@ package com.nantaaditya.example.helper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -15,7 +16,11 @@ public class MaskingHelper {
   private MaskingHelper() {}
 
   public static String masking(String value) {
-    if (!StringUtils.hasText(value) || value.length() <=2) return value;
+    if (!StringUtils.hasText(value)) return value;
+
+    if (value.length() <= 5) {
+      return MASKED_CHAR.repeat(value.length());
+    }
 
     int valueLength = value.length();
     int halfCharLength = valueLength / 2;
@@ -64,7 +69,11 @@ public class MaskingHelper {
 
   private static void maskArray(JsonArray jsonArray, String targetKey) {
     for (int i=0; i<jsonArray.size(); i++) {
-      maskObject((JsonObject) jsonArray.get(i), targetKey);
+      if (jsonArray.get(i) instanceof JsonObject jsonObject) {
+        maskObject(jsonObject, targetKey);
+      } else if (jsonArray.get(i) instanceof JsonPrimitive jsonPrimitive) {
+        jsonArray.set(i, new JsonPrimitive(jsonPrimitive.getAsString()));
+      }
     }
   }
 

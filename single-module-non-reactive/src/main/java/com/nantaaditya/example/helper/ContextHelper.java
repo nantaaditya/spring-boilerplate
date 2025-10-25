@@ -7,7 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nantaaditya.example.model.constant.ContextConstant;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
@@ -35,7 +35,7 @@ public class ContextHelper {
     }
   }
 
-  public static void update(Function<ContextDTO, ContextDTO> contextFunction) {
+  public static void update(UnaryOperator<ContextDTO> contextFunction) {
     ContextDTO contextDTO = get();
     if (contextDTO != null) {
       contextDTO = contextFunction.apply(contextDTO);

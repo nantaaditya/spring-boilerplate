@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.flywaydb.core.api.output.MigrateResult;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping(value = "/internal-api/database")
 @Tag(name = "internal-api", description = "internal api for utility purpose")
+@ConditionalOnProperty(prefix = "spring.flyway", name = "enabled", havingValue = "true")
 public class DatabaseController {
 
   private final DatabaseMigrationService databaseMigrationService;

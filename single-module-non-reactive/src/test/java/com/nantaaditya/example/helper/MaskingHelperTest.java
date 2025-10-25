@@ -19,7 +19,7 @@ class MaskingHelperTest {
 
   @Test
   void masking_lessThan2Char() {
-    assertEquals("ab", MaskingHelper.masking("ab"));
+    assertEquals("**", MaskingHelper.masking("ab"));
   }
 
   @Test

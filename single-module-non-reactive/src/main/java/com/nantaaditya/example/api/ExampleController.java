@@ -1,7 +1,6 @@
 package com.nantaaditya.example.api;
 
 import com.nantaaditya.example.client.MockClient;
-import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.request.ExampleRequest;
 import com.nantaaditya.example.model.response.ExampleResponse;
 import com.nantaaditya.example.model.response.MockClientResponse;
@@ -10,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,35 +20,31 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/example")
-public class ExampleController {
+public class ExampleController extends BaseController {
 
-  private final ObservationHelper observationHelper;
   private final MockClient mockClient;
 
   @GetMapping(
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Response<String> get() {
-    return observationHelper.observeApi(
-        "Hello world", Response::success);
+  public ResponseEntity<Response<String>> get() {
+    return toResponse(Response.success("Hello world"));
   }
 
   @PostMapping(
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Response<ExampleResponse> post(@Valid @RequestBody ExampleRequest request) {
-    return observationHelper.observeApi(request, r -> {
-      ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
-      return Response.success(exampleResponse);
-    });
+  public ResponseEntity<Response<ExampleResponse>> post(@Valid @RequestBody ExampleRequest request) {
+    ExampleResponse exampleResponse = new ExampleResponse(request.name(), request.age());
+    return toResponse(Response.success(exampleResponse));
   }
 
   @GetMapping(
       value = "/mock",
       produces = MediaType.APPLICATION_JSON_VALUE
   )
-  public Response<MockClientResponse> getMock() {
-    return Response.success(mockClient.getMock());
+  public ResponseEntity<Response<MockClientResponse>> getMock() {
+    return toResponse(Response.success(mockClient.getMock()));
   }
 }

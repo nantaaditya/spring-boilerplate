@@ -1,4 +1,4 @@
-FROM bellsoft/liberica-runtime-container:jdk-all-21-musl AS jre-build
+FROM bellsoft/liberica-runtime-container:jdk-all-25-musl AS jre-build
 
 # Create a custom Java runtime
 RUN jlink \

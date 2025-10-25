@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DeadLetterProcessRepository extends JpaRepository<DeadLetterProcess, Long> {
   @Transactional
-  void deleteByCreatedDateLessThan(long timestamp);
+  void deleteByCreatedDateLessThanAndProcessedIsTrue(long timestamp);
 
   Page<DeadLetterProcess> findByProcessTypeAndProcessNameAndProcessed(String processType,
       String processName, boolean processed, Pageable pageable);
