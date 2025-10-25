@@ -16,7 +16,11 @@ public class MaskingHelper {
   private MaskingHelper() {}
 
   public static String masking(String value) {
-    if (!StringUtils.hasText(value) || value.length() <=2) return value;
+    if (!StringUtils.hasText(value)) return value;
+
+    if (value.length() <= 5) {
+      return MASKED_CHAR.repeat(value.length());
+    }
 
     int valueLength = value.length();
     int halfCharLength = valueLength / 2;

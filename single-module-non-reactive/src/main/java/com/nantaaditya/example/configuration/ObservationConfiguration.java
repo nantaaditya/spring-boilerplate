@@ -13,11 +13,11 @@ import org.springframework.context.annotation.Configuration;
 public class ObservationConfiguration {
 
   @Bean
-  public ObservationRegistry observationRegistry() {
+  public ObservationRegistry observationRegistry(AppObservationListener observationListener) {
     ObservationRegistry observationRegistry =  ObservationRegistry.create();
     observationRegistry
         .observationConfig()
-        .observationHandler(new AppObservationListener());
+        .observationHandler(observationListener);
     return observationRegistry;
   }
 

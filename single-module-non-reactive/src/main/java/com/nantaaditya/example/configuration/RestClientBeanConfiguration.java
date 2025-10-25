@@ -97,7 +97,7 @@ public class RestClientBeanConfiguration {
       throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
     HttpClientBuilder httpClient = HttpClientBuilder.create();
 
-    ClientPoolingConfiguration poolingConfiguration = clientProperties.pooling();
+    ClientPoolingConfiguration poolingConfiguration = clientConfiguration.pooling();
     PoolingHttpClientConnectionManagerBuilder connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
         .setMaxConnTotal(poolingConfiguration.maxTotal())
         .setMaxConnPerRoute(poolingConfiguration.maxPerRoute());

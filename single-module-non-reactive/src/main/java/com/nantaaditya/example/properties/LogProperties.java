@@ -11,6 +11,7 @@ import org.springframework.util.AntPathMatcher;
 @ConfigurationProperties(value = "apps.log")
 public record LogProperties(
     boolean enableTraceLog,
+    boolean enableMetricLog,
     String ignoredTraceLogPath,
     String sensitiveField
 ) {
