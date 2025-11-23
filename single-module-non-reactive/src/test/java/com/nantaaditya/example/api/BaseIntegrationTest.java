@@ -10,14 +10,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.TsidHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
+import com.nantaaditya.example.model.constant.LogFormat;
 import com.nantaaditya.example.model.constant.ResponseCode;
+import com.nantaaditya.example.properties.LogProperties;
+import java.io.UnsupportedEncodingException;
 import java.time.ZonedDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import lombok.SneakyThrows;
@@ -52,17 +57,22 @@ public abstract class BaseIntegrationTest {
   @Autowired
   private MockMvc mockMvc;
 
+  @Autowired
+  private LogProperties logProperties;
+
   @MockitoBean
   private Flyway flyway;
 
   private static final Set<HttpMethod> HTTP_METHODS_WITH_PAYLOAD = Set.of(POST, PUT, PATCH);
-  private static final String BREAKPOINT = "\n";
 
   protected abstract String getClientId();
 
   @SneakyThrows
   protected ResultActions send(HttpMethod httpMethod, String path, Object request) {
-    StringBuilder logContent = new StringBuilder(String.format("#Request - [%s] %s", httpMethod, path));
+    Map<String, Object> logContent = new LinkedHashMap<>();
+    logContent.put("direction", "INCOMING");
+    logContent.put("method", httpMethod.name());
+    logContent.put("path", path);
     MockHttpServletRequestBuilder builder = buildRequest(httpMethod, path);
 
     if (builder == null) {
@@ -72,23 +82,21 @@ public abstract class BaseIntegrationTest {
     String requestId = TsidHelper.generateTsid();
     String requestTime = DateTimeHelper.getDateInFormat(ZonedDateTime.now(), DateTimeHelper.ISO_8601_GMT7_FORMAT);
 
-    logContent
-        .append(BREAKPOINT)
-        .append(HeaderConstant.CLIENT_ID.getHeader()).append(": ").append(getClientId())
-        .append(BREAKPOINT)
-        .append(HeaderConstant.REQUEST_ID.getHeader()).append(": ").append(requestId)
-        .append(BREAKPOINT)
-        .append(HeaderConstant.REQUEST_TIME.getHeader()).append(": ").append(requestTime);
+    Map<String, String> headers = new LinkedHashMap<>();
+    headers.put(HeaderConstant.CLIENT_ID.getHeader(), this.getClientId());
+    headers.put(HeaderConstant.REQUEST_ID.getHeader(), requestId);
+    headers.put(HeaderConstant.REQUEST_TIME.getHeader(), requestTime);
+
+    logContent.put("headers", headers);
 
     if (HTTP_METHODS_WITH_PAYLOAD.contains(httpMethod) && request != null) {
-      logContent.append(BREAKPOINT)
-          .append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(request));
+      logContent.put("body", request);
       builder
           .accept(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request));
     }
 
-    log.info(logContent.toString());
+    log(logContent);
 
     return mockMvc.perform(
         builder
@@ -127,10 +135,12 @@ public abstract class BaseIntegrationTest {
       ResponseCode responseCode, ResultMatcher... dataResultMatcher) {
 
     MockHttpServletResponse response = resultActions.andReturn().getResponse();
-    StringBuilder logConstant = new StringBuilder(String.format("#Response - [%s]", response.getStatus()));
-    appendHeader(response, logConstant);
-    appendBody(response, logConstant);
-    log.info(logConstant.toString());
+    Map<String, Object> logContent = new LinkedHashMap<>();
+    logContent.put("direction", "OUTGOING");
+    logContent.put("http status", response.getStatus());
+    appendHeader(response, logContent);
+    appendBody(response, logContent);
+    log(logContent);
 
     resultActions
         .andExpect(status().is(httpStatus.value()))
@@ -167,18 +177,29 @@ public abstract class BaseIntegrationTest {
     return null;
   }
 
-  private void appendHeader(MockHttpServletResponse response, StringBuilder logConstant) {
+  private void appendHeader(MockHttpServletResponse response, Map<String, Object> logContent) {
+    Map<String, Object> headers = new LinkedHashMap<>();
     for (String headerKey : response.getHeaderNames()) {
-      logConstant.append(BREAKPOINT)
-          .append(headerKey).append(": ").append(response.getHeaders(headerKey));
+      headers.put(headerKey, response.getHeader(headerKey));
+    }
+    logContent.put("headers", headers);
+  }
+
+  private void appendBody(MockHttpServletResponse response, Map<String, Object> logContent)
+      throws UnsupportedEncodingException {
+    try {
+      logContent.put("body", objectMapper.convertValue(response.getContentAsString(), Map.class));
+    } catch (Exception e) {
+      logContent.put("body", response.getContentAsString());
     }
   }
 
-  @SneakyThrows
-  private void appendBody(MockHttpServletResponse response, StringBuilder logConstant) {
-    Map<String, Object> content = objectMapper.readValue(response.getContentAsString(), Map.class);
-    logConstant.append(BREAKPOINT)
-        .append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(content));
+  private void log(Map<String, Object> logContent) throws JsonProcessingException {
+    if (LogFormat.TEXT == logProperties.logFormat()) {
+      log.info("{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(logContent));
+    } else if (LogFormat.JSON == logProperties.logFormat()) {
+      log.info("{}", logContent);
+    }
   }
 }
 

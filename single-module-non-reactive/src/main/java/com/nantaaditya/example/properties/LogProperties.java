@@ -1,6 +1,7 @@
 package com.nantaaditya.example.properties;
 
 import com.nantaaditya.example.helper.StringHelper;
+import com.nantaaditya.example.model.constant.LogFormat;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,10 @@ public record LogProperties(
     boolean enableTraceLog,
     boolean enableMetricLog,
     String ignoredTraceLogPath,
-    String sensitiveField
+    String sensitiveField,
+    LogFormat logFormat,
+    String textPattern,
+    String jsonPattern
 ) {
 
   private static final AntPathMatcher matcher = new AntPathMatcher();

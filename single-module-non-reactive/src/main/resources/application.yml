@@ -48,8 +48,6 @@ logging:
     org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
   file.path: ${LOG_PATH:.logs/}
-  pattern:
-    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} --- [%green(${spring.application.name:-})] [%-10thread] %highlight(%-5level) | requestId: [%cyan(%X{requestId:-})] - trace: [%X{traceId:-}-%X{spanId:-}] | %yellow(%logger{36}) : %msg%n'
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
@@ -73,6 +71,7 @@ management:
       remote-fields: ${TRACING_REMOTE_FIELDS:requestId}
 
 apps:
+  version: ${APP_VERSION:1.0.0}
   async:
     configurations:
       default:
@@ -93,6 +92,11 @@ apps:
     enable-metric-log: ${ENABLE_METRIC_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
+    log-format: ${LOG_FORMAT:TEXT}
+    json-pattern: >-
+      {"timestamp":"%d{yyyy-MM-dd HH:mm:ss:SSS}", "level":"%level", "app_version":"${apps.version}", "class":"%logger{36}", "message":"%enc{%replace{%message}{[\r\n]+}{}}{JSON}. %enc{%replace{%xThrowable}{[\r\n]+}{|}}{JSON}","trace_id":"%X{traceId}","span_id":"%X{spanId}","request_id":"%X{requestId}"}\n
+    text-pattern: >-
+      %d{yyyy-MM-dd HH:mm:ss.SSS} --- [${spring.application.name:-}] [%-10thread] %-5level | requestId: [%X{requestId}] - trace: [%X{traceId}-%X{spanId}] | %logger{36} : %msg%n
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
   retry.configurations:
@@ -104,7 +108,6 @@ apps:
       max-attempt: ${DEFAULT_RETRY_MAX_ATTEMPT:3}
       retryable-exceptions: ${DEFAULT_RETRY_EXCEPTIONS:java.lang.IllegalArgumentException:true}
   client:
-    log-format: ${HTTP_LOG_FORMAT:http}
     configurations:
       mock:
         host: ${MOCK_CLIENT_HOST:https://jsonplaceholder.typicode.com}

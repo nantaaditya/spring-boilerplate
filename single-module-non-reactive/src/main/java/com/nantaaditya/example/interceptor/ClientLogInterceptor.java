@@ -2,9 +2,8 @@ package com.nantaaditya.example.interceptor;
 
 import com.google.gson.Gson;
 import com.nantaaditya.example.helper.MaskingHelper;
-import com.nantaaditya.example.model.constant.ClientLogFormat;
+import com.nantaaditya.example.model.constant.LogFormat;
 import com.nantaaditya.example.model.dto.ClientLogResponse;
-import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
 import io.micrometer.core.instrument.util.StringEscapeUtils;
 import java.io.IOException;
@@ -35,11 +34,11 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 
 	private final Gson gson;
 	private final Set<String> maskingKeys;
-	private final ClientLogFormat logFormat;
+	private final LogFormat logFormat;
 
-	public ClientLogInterceptor(Gson gson, LogProperties logProperties, ClientProperties clientProperties) {
+	public ClientLogInterceptor(Gson gson, LogProperties logProperties) {
 		this.gson = gson;
-		this.logFormat = clientProperties.logFormat();
+		this.logFormat = logProperties.logFormat();
 		this.maskingKeys = new HashSet<>(logProperties.getSensitiveFields());
 	}
 
@@ -60,22 +59,22 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 	}
 
 	private void logRequest(HttpRequest request, byte[] body) {
-		if (ClientLogFormat.HTTP == logFormat) {
+		if (LogFormat.TEXT == logFormat) {
 			logHttpRequest(request, body);
 		}
 
-		if (ClientLogFormat.JSON == logFormat) {
+		if (LogFormat.JSON == logFormat) {
 			logJsonRequest(request, body);
 		}
 	}
 
 	private void logResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
 		stopWatch.stop();
-		if (ClientLogFormat.HTTP == logFormat) {
+		if (LogFormat.TEXT == logFormat) {
 			logHttpResponse(response, stopWatch);
 		}
 
-		if (ClientLogFormat.JSON == logFormat) {
+		if (LogFormat.JSON == logFormat) {
 			logJsonResponse(response, stopWatch);
 		}
 	}

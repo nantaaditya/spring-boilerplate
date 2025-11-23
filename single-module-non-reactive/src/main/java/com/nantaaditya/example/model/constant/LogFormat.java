@@ -1,6 +1,6 @@
 package com.nantaaditya.example.model.constant;
 
-public enum ClientLogFormat {
-  HTTP,
+public enum LogFormat {
+  TEXT,
   JSON
 }

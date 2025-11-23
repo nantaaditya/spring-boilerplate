@@ -41,8 +41,7 @@ public class ObservationHelper {
     return observationContext;
   }
 
-  public void publishEvent(String key, String value) {
-    Observation observation = observationRegistry.getCurrentObservation();
+  public void publishEvent(Observation observation,String key, String value) {
     if (observation == null) {
       log.warn("#Observation - no current observation");
       return;
@@ -54,13 +53,16 @@ public class ObservationHelper {
   public void decorateErrorObservation(ObservationWrapper observationWrapper, Throwable throwable, ResponseCode responseCode) {
     Observation observation = observationWrapper.getObservation();
     if (observation != null) {
-      String exceptionClass = throwable.getClass().getName();
-      observation.lowCardinalityKeyValue(ERROR_KEY, exceptionClass);
       if (responseCode != null) {
         observation.lowCardinalityKeyValue(RESPONSE_CODE, responseCode.name());
       }
-      publishEvent(ERROR_KEY, exceptionClass);
-      observation.error(throwable);
+
+      if (throwable != null) {
+        String exceptionClass = throwable.getClass().getName();
+        observation.lowCardinalityKeyValue(ERROR_KEY, exceptionClass);
+        publishEvent(observation, ERROR_KEY, exceptionClass);
+        observation.error(throwable);
+      }
     }
   }
 

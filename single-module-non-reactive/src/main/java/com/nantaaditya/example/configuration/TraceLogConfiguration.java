@@ -6,13 +6,16 @@ import com.nantaaditya.example.helper.MaskingHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.properties.LogProperties;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange;
+import org.springframework.boot.actuate.web.exchanges.HttpExchange.Request;
 import org.springframework.boot.actuate.web.exchanges.HttpExchangeRepository;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +37,6 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
   @Override
   public void add(HttpExchange trace) {
     HttpExchange.Request request = trace.getRequest();
-    HttpExchange.Response response = trace.getResponse();
 
     if (!logProperties.enableTraceLog()) {
       ContextHelper.cleanUp();
@@ -46,14 +48,26 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
       return;
     }
 
+    switch (logProperties.logFormat()) {
+      case TEXT -> logText(request, trace);
+      case JSON -> logJson(request, trace);
+      default -> {
+        // do nothing
+      }
+    }
+
+    ContextHelper.cleanUp();
+  }
+
+  private void logText(HttpExchange.Request request, HttpExchange trace) {
+    HttpExchange.Response response = trace.getResponse();
+
     StringBuilder logContent = new StringBuilder("#Trace");
     logContent.append(BREAKPOINT);
     logContent
         .append(request.getMethod())
         .append(" ")
-        .append((request.getUri().getRawQuery() != null ) ?
-            request.getUri().getPath().concat("?").concat(request.getUri().getRawQuery())
-            : request.getUri().getPath());
+        .append(getURI(request));
     logContent.append(BREAKPOINT);
     logContent
         .append("http status: [")
@@ -71,7 +85,30 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     }
 
     log.info(logContent.toString());
-    ContextHelper.cleanUp();
+  }
+
+  private static String getURI(Request request) {
+    return (request.getUri().getRawQuery() != null) ?
+        request.getUri().getPath().concat("?").concat(request.getUri().getRawQuery())
+        : request.getUri().getPath();
+  }
+
+  private void logJson(HttpExchange.Request request, HttpExchange trace) {
+    HttpExchange.Response response = trace.getResponse();
+
+    Map<String, Object> content = new LinkedHashMap<>();
+    content.put("method", request.getMethod());
+    content.put("uri", getURI(request));
+    content.put("http status", "[" + response.getStatus() + "]");
+    content.put("time taken", "[" + trace.getTimeTaken().toMillis() + "] ms");
+
+    for (Entry<String, List<String>> headers : response.getHeaders().entrySet()) {
+      if (isInternalHeader(headers.getKey())) {
+        content.put("headers", logProperties.isSensitiveField(headers.getKey()) ?
+            headers.getValue().stream().map(MaskingHelper::masking).toList()  : headers.getValue());
+      }
+    }
+    log.info("{}", content);
   }
 
   private boolean isInternalHeader(String headerKey) {

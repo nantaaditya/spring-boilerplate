@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
-import com.nantaaditya.example.model.constant.ClientLogFormat;
+import com.nantaaditya.example.model.constant.LogFormat;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.LogProperties;
 import java.io.IOException;
@@ -51,13 +51,13 @@ class ClientLogInterceptorTest {
   void setUp() {
     when(logProperties.getSensitiveFields())
         .thenReturn(Set.of("key"));
-    when(clientProperties.logFormat())
-        .thenReturn(ClientLogFormat.HTTP);
   }
 
   @Test
   void intercept_http() throws URISyntaxException, IOException {
-    interceptor = new ClientLogInterceptor(gson, logProperties, clientProperties);
+    when(logProperties.logFormat())
+        .thenReturn(LogFormat.TEXT);
+    interceptor = new ClientLogInterceptor(gson, logProperties);
     when(httpRequest.getMethod())
         .thenReturn(HttpMethod.GET);
     when(httpRequest.getURI())
@@ -80,7 +80,9 @@ class ClientLogInterceptorTest {
 
   @Test
   void intercept_json() throws URISyntaxException, IOException {
-    interceptor = new ClientLogInterceptor(gson, logProperties, clientProperties);
+    when(logProperties.logFormat())
+        .thenReturn(LogFormat.JSON);
+    interceptor = new ClientLogInterceptor(gson, logProperties);
     when(httpRequest.getMethod())
         .thenReturn(HttpMethod.GET);
     when(httpRequest.getURI())
