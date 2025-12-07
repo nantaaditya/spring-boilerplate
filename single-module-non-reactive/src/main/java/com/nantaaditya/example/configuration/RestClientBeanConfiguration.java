@@ -2,6 +2,7 @@ package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.factory.RestClientHelperFactory;
 import com.nantaaditya.example.interceptor.ClientLogInterceptor;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.ClientProperties;
 import com.nantaaditya.example.properties.embedded.ClientConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientPoolingConfiguration;
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
@@ -31,7 +32,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-@Slf4j
+@Log4j2
 @Configuration
 @RequiredArgsConstructor
 public class RestClientBeanConfiguration {
@@ -48,7 +49,7 @@ public class RestClientBeanConfiguration {
 
     RestClientHelperFactory factory = new RestClientHelperFactory();
     if (clientProperties.configurations() == null || clientProperties.configurations().isEmpty()) {
-      log.warn("#Client - no bean defined");
+      log.warn(AppLogMessage.create("#Client - no bean defined"));
       factory.setRestClients(restClients);
       return factory;
     }
@@ -62,7 +63,7 @@ public class RestClientBeanConfiguration {
         )
     );
     factory.setRestClients(restClients);
-    log.debug("#Client - [{}] created", clientProperties.getBeanNames(POSTFIX_BEAN_NAME));
+    log.debug(AppLogMessage.create(String.format("#Client - [%s] created", clientProperties.getBeanNames(POSTFIX_BEAN_NAME))));
     return factory;
   }
 
@@ -88,7 +89,7 @@ public class RestClientBeanConfiguration {
       restTemplate.setObservationRegistry(observationRegistry);
       return restTemplate;
     } catch (Exception e) {
-      log.error("#Client - error while creating rest client", e);
+      log.error(AppLogMessage.create("#Client - error while creating rest client", e));
       return null;
     }
   }

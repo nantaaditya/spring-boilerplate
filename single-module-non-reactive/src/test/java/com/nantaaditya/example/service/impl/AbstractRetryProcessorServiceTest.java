@@ -8,15 +8,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@Slf4j
+@Log4j2
 @ExtendWith(MockitoExtension.class)
 class AbstractRetryProcessorServiceTest {
 
@@ -42,7 +43,7 @@ class AbstractRetryProcessorServiceTest {
 
     @Override
     protected void doProcess(DeadLetterProcess deadLetterProcess) {
-      log.info("retry content {}", deadLetterProcess);
+      log.info(AppLogMessage.create("retry content", deadLetterProcess));
     }
   }
 

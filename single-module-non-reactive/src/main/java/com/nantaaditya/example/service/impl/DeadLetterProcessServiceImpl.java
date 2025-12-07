@@ -3,13 +3,14 @@ package com.nantaaditya.example.service.impl;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,7 +18,7 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-@Slf4j
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
@@ -44,8 +45,8 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
             false, pageRequest);
 
     if (!deadLetterProcessPage.hasContent()) {
-      log.info("#DeadLetterProcess - no dead letter processes [{}] [{}] found",
-          request.processType(), request.processName());
+      log.info(AppLogMessage.create(String.format("#DeadLetterProcess - no dead letter processes [%s] [%s] found",
+          request.processType(), request.processName())));
       return;
     }
 
@@ -57,7 +58,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   public void executeRetryProcess(RetryDeadLetterProcessRequest request, List<DeadLetterProcess> deadLetterProcesses) {
     AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(request.processType(), request.processName());
     if (processor == null) {
-      log.warn("#DeadLetterProcess - no retry processor handler found with {} - {}", request.processType(), request.processName());
+      log.warn(AppLogMessage.create(String.format("#DeadLetterProcess - no retry processor handler found with %s - %s", request.processType(), request.processName())));
       return;
     }
     processor.execute(deadLetterProcesses);

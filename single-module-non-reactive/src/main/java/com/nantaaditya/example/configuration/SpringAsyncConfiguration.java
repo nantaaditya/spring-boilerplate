@@ -3,18 +3,19 @@ package com.nantaaditya.example.configuration;
 import com.nantaaditya.example.helper.AsyncMDCTaskDecorator;
 import com.nantaaditya.example.helper.ExecutorHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 
-@Slf4j
+@Log4j2
 @Configuration
 public class SpringAsyncConfiguration implements AsyncConfigurer {
 
@@ -44,8 +45,8 @@ public class SpringAsyncConfiguration implements AsyncConfigurer {
     return new AsyncUncaughtExceptionHandler() {
       @Override
       public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-        log.error("#Async - got error {}, method {}, params {}, error",
-            ex.getMessage(), method.getName(), params, ex);
+        log.error(AppLogMessage.create(String.format("#Async - got error %s, httpMethod %s, params %s",
+            ex.getMessage(), method.getName(), params), ex));
       }
     };
   }

@@ -10,10 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,7 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-@Slf4j
+@Log4j2
 @ExtendWith(MockitoExtension.class)
 class DeadLetterProcessServiceImplTest {
 
@@ -115,7 +116,7 @@ class DeadLetterProcessServiceImplTest {
 
     @Override
     protected void doProcess(DeadLetterProcess deadLetterProcess) {
-      log.info("#DeadLLetterProcess - {}", deadLetterProcess);
+      log.info(AppLogMessage.create("#DeadLLetterProcess", deadLetterProcess));
     }
   }
 }

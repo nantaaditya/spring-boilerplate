@@ -2,6 +2,7 @@ package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.constant.RetryConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ClientRequest;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +11,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +23,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
-@Slf4j
+@Log4j2
 public class RestSender {
   private final String name;
   private final RestTemplate restClient;
@@ -90,7 +91,7 @@ public class RestSender {
 
       return restClient.exchange(pathBuilder.toString(), request.method(), httpEntity, request.responseType());
     } catch (Throwable ex) {
-      log.error("#Client - [{}] has error, ", this.name, ex);
+      log.error(AppLogMessage.create(String.format("#Client - [%s] has error, ", this.name), ex));
       if (retryTemplate != null)
         setAttributeOnRetryContext(request.retryContext(), httpEntity, request.request(), request.processName(), ex);
       throw ex;

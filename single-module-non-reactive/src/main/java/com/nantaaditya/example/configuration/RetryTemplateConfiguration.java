@@ -3,6 +3,7 @@ package com.nantaaditya.example.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.factory.RetryTemplateHelperFactory;
 import com.nantaaditya.example.listener.RetryTemplateListener;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.RetryProperties;
 import com.nantaaditya.example.properties.embedded.RetryConfiguration;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
@@ -10,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
@@ -20,7 +21,7 @@ import org.springframework.retry.backoff.UniformRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-@Slf4j
+@Log4j2
 @Configuration
 @RequiredArgsConstructor
 public class RetryTemplateConfiguration {
@@ -37,7 +38,7 @@ public class RetryTemplateConfiguration {
 
     RetryTemplateHelperFactory factory = new RetryTemplateHelperFactory();
     if (retryProperties.configurations() == null || retryProperties.configurations().isEmpty()) {
-      log.warn("#Retry - no bean defined");
+      log.warn(AppLogMessage.create("#Retry - no bean defined"));
       factory.setRetryTemplates(retryTemplates);
       return factory;
     }
@@ -51,7 +52,7 @@ public class RetryTemplateConfiguration {
         ))
     );
     factory.setRetryTemplates(retryTemplates);
-    log.debug("#Retry - [{}] created", retryProperties.getBeanNames(POSTFIX_BEAN_NAME));
+    log.debug(AppLogMessage.create(String.format("#Retry - [%s] created", retryProperties.getBeanNames(POSTFIX_BEAN_NAME))));
     return factory;
   }
 

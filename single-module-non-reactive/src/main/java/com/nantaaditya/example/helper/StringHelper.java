@@ -3,9 +3,7 @@ package com.nantaaditya.example.helper;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.StringTokenizer;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class StringHelper {
 
   private StringHelper() {}
@@ -28,5 +26,17 @@ public class StringHelper {
              | NoSuchMethodException | InvocationTargetException e) {
       throw new IllegalArgumentException("#Converter - error creating collection instance", e);
     }
+  }
+
+  public static String prependLog(String value, int maxLength, char character) {
+    if (value == null) {
+      return value;
+    }
+
+    if (value.length() > maxLength) {
+      return value.substring(value.length() - maxLength);
+    }
+
+    return String.valueOf(character).repeat(maxLength - value.length()) + value;
   }
 }

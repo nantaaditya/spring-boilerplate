@@ -1,10 +1,11 @@
 package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
-@Slf4j
+@Log4j2
 public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
   public ExampleRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository) {
@@ -23,6 +24,6 @@ public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
   @Override
   protected void doProcess(DeadLetterProcess deadLetterProcess) {
-    log.info("#DeadLetterProcess - payload {}", deadLetterProcess);
+    log.info(AppLogMessage.create("#DeadLetterProcess - payload", deadLetterProcess));
   }
 }

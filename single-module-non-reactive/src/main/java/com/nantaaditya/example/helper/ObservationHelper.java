@@ -2,6 +2,7 @@ package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.model.constant.FeatureConstant;
 import com.nantaaditya.example.model.constant.ResponseCode;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
@@ -10,10 +11,10 @@ import io.micrometer.observation.Observation.Event;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 
-@Slf4j
+@Log4j2
 @Getter
 @Component
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class ObservationHelper {
 
   public void publishEvent(Observation observation,String key, String value) {
     if (observation == null) {
-      log.warn("#Observation - no current observation");
+      log.warn(AppLogMessage.create("#Observation - no current observation"));
       return;
     }
 

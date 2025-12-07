@@ -1,16 +1,17 @@
 package com.nantaaditya.example.listener;
 
 import com.nantaaditya.example.model.constant.ObservationConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.LogProperties;
 import io.micrometer.observation.Observation.Context;
 import io.micrometer.observation.Observation.Event;
 import io.micrometer.observation.ObservationHandler;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 
-@Slf4j
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class AppObservationListener implements ObservationHandler<Context> {
@@ -24,22 +25,22 @@ public class AppObservationListener implements ObservationHandler<Context> {
 
   @Override
   public void onStart(Context context) {
-    log.info("#Metrics - start {}", context);
+    log.info(AppLogMessage.create("#Metrics - start", context));
   }
 
   @Override
   public void onEvent(Event event, Context context) {
-    log.info("#Metrics - event {}", event);
+    log.info(AppLogMessage.create("#Metrics - event", event));
   }
 
   @Override
   public void onError(Context context) {
-    log.error("#Metrics - error {}", context);
+    log.error(AppLogMessage.create("#Metrics - error", context));
   }
 
   @Override
   public void onStop(Context context) {
-    log.info("#Metrics - stop {}", context);
+    log.info(AppLogMessage.create("#Metrics - stop", context));
   }
 
   public static boolean isEligibleToObserved(Context context) {

@@ -4,19 +4,20 @@ import com.nantaaditya.example.helper.AsyncMDCTaskDecorator;
 import com.nantaaditya.example.helper.ExecutorHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.helper.TaskRetryHelper;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
-@Slf4j
+@Log4j2
 @Configuration
 @RequiredArgsConstructor
 public class AsyncTaskConfiguration {
@@ -30,7 +31,7 @@ public class AsyncTaskConfiguration {
   @EventListener(ApplicationReadyEvent.class)
   public void onStart() {
     if (asyncProperties.configurations() == null || asyncProperties.configurations().isEmpty()) {
-      log.warn("#AsyncExecutor - no bean defined");
+      log.warn(AppLogMessage.create("#AsyncExecutor - no bean defined"));
       return;
     }
 
@@ -46,7 +47,7 @@ public class AsyncTaskConfiguration {
             )
         );
 
-    log.debug("#AsyncExecutor - bean {} created", asyncProperties.getConfiguration(POSTFIX_BEAN_NAME));
+    log.debug(AppLogMessage.create(String.format("#AsyncExecutor - bean %s created", asyncProperties.getConfiguration(POSTFIX_BEAN_NAME))));
   }
 
   private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration,
@@ -61,7 +62,7 @@ public class AsyncTaskConfiguration {
         new RejectedExecutionHandler() {
           @Override
           public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {
-            log.warn("#AsyncExecutor - rejected execution of task {}", task);
+            log.warn(AppLogMessage.create(String.format("#AsyncExecutor - rejected execution of task %s", task)));
             taskRetryHelper.enqueue(task);
           }
         }

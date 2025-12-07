@@ -2,12 +2,13 @@ package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.model.constant.ContextConstant;
 import com.nantaaditya.example.model.constant.RetryConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import java.util.function.Function;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.support.RetryTemplate;
 
-@Slf4j
+@Log4j2
 public class RetryHelper {
 
   private RetryHelper() {}
@@ -22,7 +23,7 @@ public class RetryHelper {
       Function<S, T> action, Function<E, T> fallbackAction, S request, RetryContext context) {
     T response = null;
     try {
-      log.debug("#Retry - execute request [{}] [{}] - {}", processType, processName, request);
+      log.debug(AppLogMessage.create(String.format("#Retry - execute request [%s] [%s]", processType, processName), request));
       response = action.apply(request);
       return response;
     } catch (Throwable ex) {

@@ -48,6 +48,7 @@ logging:
     org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
   file.path: ${LOG_PATH:.logs/}
+  config: classpath:log4j2-spring-${apps.log.log-format:json}.xml
 
 management:
   server.port: ${ACTUATOR_PORT:1001}
@@ -93,10 +94,6 @@ apps:
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
     log-format: ${LOG_FORMAT:TEXT}
-    json-pattern: >-
-      {"timestamp":"%d{yyyy-MM-dd HH:mm:ss:SSS}", "level":"%level", "app_version":"${apps.version}", "class":"%logger{36}", "message":"%enc{%replace{%message}{[\r\n]+}{}}{JSON}. %enc{%replace{%xThrowable}{[\r\n]+}{|}}{JSON}","trace_id":"%X{traceId}","span_id":"%X{spanId}","request_id":"%X{requestId}"}\n
-    text-pattern: >-
-      %d{yyyy-MM-dd HH:mm:ss.SSS} --- [${spring.application.name:-}] [%-10thread] %-5level | requestId: [%X{requestId}] - trace: [%X{traceId}-%X{spanId}] | %logger{36} : %msg%n
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
   retry.configurations:

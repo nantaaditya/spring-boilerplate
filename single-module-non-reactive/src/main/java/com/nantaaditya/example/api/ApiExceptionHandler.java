@@ -6,6 +6,7 @@ import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.model.constant.ResponseCode;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.response.Response;
 import com.nantaaditya.example.model.response.Response.ErrorMetadata;
 import java.lang.reflect.Parameter;
@@ -21,7 +22,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.exception.SQLGrammarException;
 import org.postgresql.util.PSQLException;
@@ -39,7 +40,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-@Slf4j
+@Log4j2
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class ApiExceptionHandler {
@@ -48,7 +49,7 @@ public class ApiExceptionHandler {
   private final ObservationHelper observationHelper;
   private final ObservationWrapper observationWrapper;
 
-  private static final String ERROR_LOG = "#ApiError - got error exception: ";
+  private static final String ERROR_LOG = "#ApiError - got error exception";
   private static final String EXCEPTION_KEY = "exception";
 
   @ResponseBody
@@ -136,7 +137,7 @@ public class ApiExceptionHandler {
 
   private <S extends Throwable> Response<Object> toError(S source,
       Function<S, Pair<Map<String, List<String>>, Response<Object>>> function) {
-    log.error(ERROR_LOG, source);
+    log.error(AppLogMessage.create(ERROR_LOG, source));
 
     Pair<Map<String, List<String>>, Response<Object>> pair = function.apply(source);
     Map<String, List<String>> errorList = pair.getLeft();
@@ -160,7 +161,7 @@ public class ApiExceptionHandler {
     try {
       return objectMapper.writeValueAsString(violations);
     } catch (JsonProcessingException e) {
-      log.error("#ApiError - failed convert errors, ", e);
+      log.error(AppLogMessage.create("#ApiError - failed convert errors", e));
       return null;
     }
   }

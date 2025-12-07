@@ -15,9 +15,7 @@ public record LogProperties(
     boolean enableMetricLog,
     String ignoredTraceLogPath,
     String sensitiveField,
-    LogFormat logFormat,
-    String textPattern,
-    String jsonPattern
+    LogFormat logFormat
 ) {
 
   private static final AntPathMatcher matcher = new AntPathMatcher();

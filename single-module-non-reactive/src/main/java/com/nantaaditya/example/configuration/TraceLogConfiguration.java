@@ -4,22 +4,24 @@ package com.nantaaditya.example.configuration;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.MaskingHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
+import com.nantaaditya.example.model.dto.JsonLogHttpResponse;
 import com.nantaaditya.example.properties.LogProperties;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange.Request;
 import org.springframework.boot.actuate.web.exchanges.HttpExchangeRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
-@Slf4j
+@Log4j2
 @Component
 @RequiredArgsConstructor
 public class TraceLogConfiguration implements HttpExchangeRepository {
@@ -84,7 +86,7 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
       }
     }
 
-    log.info(logContent.toString());
+    log.info(AppLogMessage.create(logContent.toString()));
   }
 
   private static String getURI(Request request) {
@@ -96,19 +98,27 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
   private void logJson(HttpExchange.Request request, HttpExchange trace) {
     HttpExchange.Response response = trace.getResponse();
 
-    Map<String, Object> content = new LinkedHashMap<>();
-    content.put("method", request.getMethod());
-    content.put("uri", getURI(request));
-    content.put("http status", "[" + response.getStatus() + "]");
-    content.put("time taken", "[" + trace.getTimeTaken().toMillis() + "] ms");
-
-    for (Entry<String, List<String>> headers : response.getHeaders().entrySet()) {
-      if (isInternalHeader(headers.getKey())) {
-        content.put("headers", logProperties.isSensitiveField(headers.getKey()) ?
-            headers.getValue().stream().map(MaskingHelper::masking).toList()  : headers.getValue());
+    MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+    for (Entry<String, List<String>> h : response.getHeaders().entrySet()) {
+      if (isInternalHeader(h.getKey())) {
+        headers.put(
+            h.getKey(),
+            logProperties.isSensitiveField(h.getKey()) ?
+              h.getValue().stream().map(MaskingHelper::masking).toList()  : h.getValue()
+        );
       }
     }
-    log.info("{}", content);
+
+    JsonLogHttpResponse content = new JsonLogHttpResponse(
+        request.getMethod(),
+        getURI(request),
+        String.format("[%s]", response.getStatus()),
+        String.format("[%s] ms", trace.getTimeTaken().toMillis()),
+        headers,
+        null
+    );
+
+    log.info(AppLogMessage.create("#Trace", content));
   }
 
   private boolean isInternalHeader(String headerKey) {

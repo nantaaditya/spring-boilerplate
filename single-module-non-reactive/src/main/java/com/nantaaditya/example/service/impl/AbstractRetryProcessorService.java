@@ -1,11 +1,12 @@
 package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
-@Slf4j
+@Log4j2
 public abstract class AbstractRetryProcessorService {
 
   protected DeadLetterProcessRepository deadLetterProcessRepository;
@@ -23,7 +24,7 @@ public abstract class AbstractRetryProcessorService {
       update(deadLetterProcess);
       doProcess(deadLetterProcess);
     }
-    log.info("#Retry - [{}] [{}] total {} retry processed", getProcessType(), getProcessName(), deadLetterProcesses.size());
+    log.info(AppLogMessage.create(String.format("#Retry - [%s] [%s] total %s retry processed", getProcessType(), getProcessName(), deadLetterProcesses.size())));
   }
 
   private void update(DeadLetterProcess deadLetterProcess) {

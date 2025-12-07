@@ -10,23 +10,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.TsidHelper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
-import com.nantaaditya.example.model.constant.LogFormat;
 import com.nantaaditya.example.model.constant.ResponseCode;
-import com.nantaaditya.example.properties.LogProperties;
-import java.io.UnsupportedEncodingException;
+import com.nantaaditya.example.model.dto.AppLogMessage;
+import com.nantaaditya.example.model.dto.JsonLogHttpRequest;
+import com.nantaaditya.example.model.dto.JsonLogHttpResponse;
 import java.time.ZonedDateTime;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +43,10 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
-@Slf4j
+@Log4j2
 @AutoConfigureMockMvc
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ExtendWith(SpringExtension.class)
@@ -57,9 +58,6 @@ public abstract class BaseIntegrationTest {
   @Autowired
   private MockMvc mockMvc;
 
-  @Autowired
-  private LogProperties logProperties;
-
   @MockitoBean
   private Flyway flyway;
 
@@ -69,34 +67,34 @@ public abstract class BaseIntegrationTest {
 
   @SneakyThrows
   protected ResultActions send(HttpMethod httpMethod, String path, Object request) {
-    Map<String, Object> logContent = new LinkedHashMap<>();
-    logContent.put("direction", "INCOMING");
-    logContent.put("method", httpMethod.name());
-    logContent.put("path", path);
     MockHttpServletRequestBuilder builder = buildRequest(httpMethod, path);
 
     if (builder == null) {
-      throw new IllegalArgumentException("http method not valid");
+      throw new IllegalArgumentException("http httpMethod not valid");
     }
 
     String requestId = TsidHelper.generateTsid();
     String requestTime = DateTimeHelper.getDateInFormat(ZonedDateTime.now(), DateTimeHelper.ISO_8601_GMT7_FORMAT);
 
-    Map<String, String> headers = new LinkedHashMap<>();
-    headers.put(HeaderConstant.CLIENT_ID.getHeader(), this.getClientId());
-    headers.put(HeaderConstant.REQUEST_ID.getHeader(), requestId);
-    headers.put(HeaderConstant.REQUEST_TIME.getHeader(), requestTime);
-
-    logContent.put("headers", headers);
+    MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+    headers.put(HeaderConstant.CLIENT_ID.getHeader(), List.of(this.getClientId()));
+    headers.put(HeaderConstant.REQUEST_ID.getHeader(), List.of(requestId));
+    headers.put(HeaderConstant.REQUEST_TIME.getHeader(), List.of(requestTime));
 
     if (HTTP_METHODS_WITH_PAYLOAD.contains(httpMethod) && request != null) {
-      logContent.put("body", request);
       builder
           .accept(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(request));
     }
 
-    log(logContent);
+    JsonLogHttpRequest content = new JsonLogHttpRequest(
+        httpMethod.name(),
+        path,
+        headers,
+        HTTP_METHODS_WITH_PAYLOAD.contains(httpMethod) && request != null ? request : null
+    );
+    AppLogMessage appLogMessage = AppLogMessage.create("INCOMING", content);
+    log(appLogMessage);
 
     return mockMvc.perform(
         builder
@@ -135,12 +133,23 @@ public abstract class BaseIntegrationTest {
       ResponseCode responseCode, ResultMatcher... dataResultMatcher) {
 
     MockHttpServletResponse response = resultActions.andReturn().getResponse();
-    Map<String, Object> logContent = new LinkedHashMap<>();
-    logContent.put("direction", "OUTGOING");
-    logContent.put("http status", response.getStatus());
-    appendHeader(response, logContent);
-    appendBody(response, logContent);
-    log(logContent);
+
+    Object body = null;
+    try {
+      body = objectMapper.readValue(response.getContentAsString(), Map.class);
+    } catch (Exception e) {
+      body = response.getContentAsString();
+    }
+
+    JsonLogHttpResponse content = new JsonLogHttpResponse(
+        null,
+        null,
+        String.valueOf(response.getStatus()),
+        null,
+        appendHeader(response),
+        body
+    );
+    log(AppLogMessage.create("OUTGOING", content));
 
     resultActions
         .andExpect(status().is(httpStatus.value()))
@@ -177,29 +186,16 @@ public abstract class BaseIntegrationTest {
     return null;
   }
 
-  private void appendHeader(MockHttpServletResponse response, Map<String, Object> logContent) {
-    Map<String, Object> headers = new LinkedHashMap<>();
+  private MultiValueMap<String, String> appendHeader(MockHttpServletResponse response) {
+    MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
     for (String headerKey : response.getHeaderNames()) {
-      headers.put(headerKey, response.getHeader(headerKey));
+      headers.put(headerKey, List.of(response.getHeader(headerKey)));
     }
-    logContent.put("headers", headers);
+    return headers;
   }
 
-  private void appendBody(MockHttpServletResponse response, Map<String, Object> logContent)
-      throws UnsupportedEncodingException {
-    try {
-      logContent.put("body", objectMapper.convertValue(response.getContentAsString(), Map.class));
-    } catch (Exception e) {
-      logContent.put("body", response.getContentAsString());
-    }
-  }
-
-  private void log(Map<String, Object> logContent) throws JsonProcessingException {
-    if (LogFormat.TEXT == logProperties.logFormat()) {
-      log.info("{}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(logContent));
-    } else if (LogFormat.JSON == logProperties.logFormat()) {
-      log.info("{}", logContent);
-    }
+  private void log(AppLogMessage appLogMessage) {
+    log.info(appLogMessage);
   }
 }
 
