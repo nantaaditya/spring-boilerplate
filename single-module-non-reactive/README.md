@@ -142,9 +142,17 @@ log.info(AppLogMessage.create("test log"));
     },
     "body": {}
   },
+  "iso_message": {
+    "direction": "incoming",
+    "mti": "",
+    "data_element": {
+      "2": "",
+      "3": ""
+    }
+  },
   "error": {
     "error_message": "",
-    "error_detail": [
+    "error_stacktrace": [
       ""
     ]
   },
@@ -159,6 +167,7 @@ it will create log using this format
   "app_version":"1.0.0",
   "class":"itya.example.api.BaseIntegrationTest",
   "context":{
+    "message": "",
     "http_request": {
       "http_method": "",
       "uri": "",
@@ -177,9 +186,17 @@ it will create log using this format
       },
       "body": {}
     },
+    "iso_message": {
+      "direction": "incoming",
+      "mti": "",
+      "data_element": {
+        "2": "",
+        "3": ""
+      }
+    },
     "error": {
       "error_message": "",
-      "error_detail": [
+      "error_stacktrace": [
         ""
       ]
     },

@@ -8,8 +8,8 @@ import java.util.Arrays;
 public record JsonLogError(
     @JsonProperty("error_message")
     String errorMessage,
-    @JsonProperty("error_detail")
-    String [] errorDetail
+    @JsonProperty("error_stacktrace")
+    String [] errorStackTrace
 ) {
 
   public static JsonLogError create(Throwable throwable) {

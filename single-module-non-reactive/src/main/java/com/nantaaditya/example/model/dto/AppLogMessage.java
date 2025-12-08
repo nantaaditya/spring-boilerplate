@@ -3,7 +3,6 @@ package com.nantaaditya.example.model.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,27 +25,35 @@ public class AppLogMessage implements Message {
   private Object additionalData;
 
   public static AppLogMessage create(String message) {
-    return new AppLogMessage(message, null, null, null, Map.of());
+    return new AppLogMessage(message, null, null, null, null);
   }
 
-  public static AppLogMessage create(String message, Object contextData) {
-    return new AppLogMessage(message, null, null, null, contextData);
+  public static AppLogMessage create(String message, Object additionalData) {
+    return new AppLogMessage(message, null, null, null, additionalData);
   }
 
   public static AppLogMessage create(String message, JsonLogHttpRequest httpRequest) {
-    return new AppLogMessage(message, httpRequest, null, null, Map.of());
+    return new AppLogMessage(message, httpRequest, null, null, null);
+  }
+
+  public static AppLogMessage create(String message, JsonLogHttpRequest httpRequest, Object additionalData) {
+    return new AppLogMessage(message, httpRequest, null, null, additionalData);
   }
 
   public static AppLogMessage create(String message, JsonLogHttpResponse httpResponse) {
-    return new AppLogMessage(message, null, httpResponse, null, Map.of());
+    return new AppLogMessage(message, null, httpResponse, null, null);
+  }
+
+  public static AppLogMessage create(String message, JsonLogHttpResponse httpResponse, Object additionalData) {
+    return new AppLogMessage(message, null, httpResponse, null, additionalData);
   }
 
   public static AppLogMessage create(String message, Throwable throwable) {
-    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), Map.of());
+    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), null);
   }
 
-  public static AppLogMessage create(String message, Throwable throwable, Object contextData) {
-    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), contextData);
+  public static AppLogMessage create(String message, Throwable throwable, Object additionalData) {
+    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), additionalData);
   }
 
   @Override

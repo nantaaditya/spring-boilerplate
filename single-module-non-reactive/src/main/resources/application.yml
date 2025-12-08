@@ -46,6 +46,7 @@ logging:
     root: ${ROOT_LOG_LEVEL:INFO}
     org.springframework: ${SPRING_LOG_LEVEL:INFO}
     org.hibernate: ${HIBERNATE_LOG_LEVEL:WARN}
+    org.zalando.logbook: ${ZALANDO_LOG_LEVEL:TRACE}
     com.nantaaditya: ${APP_LOG_LEVEL:INFO}
   file.path: ${LOG_PATH:.logs/}
   config: classpath:log4j2-spring-${apps.log.log-format:json}.xml
@@ -91,6 +92,7 @@ apps:
   log:
     enable-trace-log: ${ENABLE_TRACE_LOG:true}
     enable-metric-log: ${ENABLE_METRIC_LOG:true}
+    enable-api-log: ${ENABLE_API_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
     log-format: ${LOG_FORMAT:TEXT}

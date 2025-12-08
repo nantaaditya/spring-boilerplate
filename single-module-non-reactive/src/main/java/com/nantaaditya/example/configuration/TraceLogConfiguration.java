@@ -112,8 +112,8 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
     JsonLogHttpResponse content = new JsonLogHttpResponse(
         request.getMethod(),
         getURI(request),
-        String.format("[%s]", response.getStatus()),
-        String.format("[%s] ms", trace.getTimeTaken().toMillis()),
+        String.format("%s", response.getStatus()),
+        String.format("%s ms", trace.getTimeTaken().toMillis()),
         headers,
         null
     );

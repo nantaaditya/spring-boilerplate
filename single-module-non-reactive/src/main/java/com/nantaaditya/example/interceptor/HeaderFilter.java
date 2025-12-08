@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Log4j2
-@Component
+@Component("appHeaderFilter")
 public class HeaderFilter extends OncePerRequestFilter {
 
   @Autowired

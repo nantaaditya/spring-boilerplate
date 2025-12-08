@@ -13,6 +13,7 @@ import org.springframework.util.AntPathMatcher;
 public record LogProperties(
     boolean enableTraceLog,
     boolean enableMetricLog,
+    boolean enableApiLog,
     String ignoredTraceLogPath,
     String sensitiveField,
     LogFormat logFormat
