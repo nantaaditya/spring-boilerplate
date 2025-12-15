@@ -61,7 +61,7 @@ public class HeaderFilter extends OncePerRequestFilter {
       MDC.setContextMap(contextMap);
       filterChain.doFilter(httpServletRequest, getResponseWrapper(response, observation));
     } catch (Throwable throwable) {
-      log.error(AppLogMessage.create("#Observation - error", throwable));
+      log.error(AppLogMessage.message("#Observation - error").error(throwable));
       observationHelper.decorateErrorObservation(observationWrapper, throwable, null);
       throw throwable;
     } finally {

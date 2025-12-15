@@ -40,9 +40,9 @@ public class ApiLogbookWriter implements HttpLogWriter {
           body
       );
 
-      log.info(AppLogMessage.create("#Zalando: incoming request", jsonLogHttpRequest, content));
+      log.info(AppLogMessage.message("#Zalando: incoming request").httpRequest(jsonLogHttpRequest).additionalData(content));
     } catch (Exception e) {
-      log.info(AppLogMessage.create(request, e));
+      log.info(AppLogMessage.message(request).error(e));
     }
   }
 
@@ -63,9 +63,9 @@ public class ApiLogbookWriter implements HttpLogWriter {
           body
       );
 
-      log.info(AppLogMessage.create("#Zalando: outgoing response", jsonLogHttpResponse, content));
+      log.info(AppLogMessage.message("#Zalando: outgoing response").httpResponse(jsonLogHttpResponse).additionalData(content));
     } catch (Exception e) {
-      log.info(AppLogMessage.create(response, e));
+      log.info(AppLogMessage.message(response).error(e));
     }
   }
 

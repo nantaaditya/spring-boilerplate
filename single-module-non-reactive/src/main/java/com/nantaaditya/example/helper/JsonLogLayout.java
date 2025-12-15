@@ -1,7 +1,11 @@
 package com.nantaaditya.example.helper;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import io.micrometer.core.instrument.util.StringEscapeUtils;
 import java.nio.charset.StandardCharsets;
@@ -17,11 +21,16 @@ import org.apache.logging.log4j.core.layout.AbstractStringLayout;
 @Plugin(
     name = "JsonLogLayout",
     category = Node.CATEGORY,
-    elementType = Layout.ELEMENT_TYPE
+    elementType = Layout.ELEMENT_TYPE,
+    printObject = true
 )
 public class JsonLogLayout extends AbstractStringLayout {
 
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper()
+      .registerModule(new JavaTimeModule())
+      .setSerializationInclusion(Include.NON_NULL)
+      .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+      .disable(MapperFeature.USE_ANNOTATIONS);
   private final String version;
 
   protected JsonLogLayout(String version) {
@@ -60,7 +69,7 @@ public class JsonLogLayout extends AbstractStringLayout {
   }
 
   private void parseJsonLogMessage(AppLogMessage j, ObjectNode context) {
-    context.put("message", StringEscapeUtils.escapeJson(j.getMessage()));
+    context.put("message", StringEscapeUtils.escapeJson(j.getFormattedMessage()));
 
     if (j.getHttpRequest() != null) {
       ObjectNode httpRequest = objectMapper.valueToTree(j.getHttpRequest());

@@ -38,7 +38,7 @@ public class RetryTemplateConfiguration {
 
     RetryTemplateHelperFactory factory = new RetryTemplateHelperFactory();
     if (retryProperties.configurations() == null || retryProperties.configurations().isEmpty()) {
-      log.warn(AppLogMessage.create("#Retry - no bean defined"));
+      log.warn(AppLogMessage.message("#Retry - no bean defined"));
       factory.setRetryTemplates(retryTemplates);
       return factory;
     }
@@ -52,7 +52,7 @@ public class RetryTemplateConfiguration {
         ))
     );
     factory.setRetryTemplates(retryTemplates);
-    log.debug(AppLogMessage.create(String.format("#Retry - [%s] created", retryProperties.getBeanNames(POSTFIX_BEAN_NAME))));
+    log.debug(AppLogMessage.message("#Retry - [{}] created", retryProperties.getBeanNames(POSTFIX_BEAN_NAME)));
     return factory;
   }
 

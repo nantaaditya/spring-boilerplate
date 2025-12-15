@@ -119,7 +119,7 @@ If you want to disable just change `apps.log.enable-trace-log` props.
 for structured log it use log4j2 with custom json format, on each log message you must use `AppLogMessage`
 
 ```java
-log.info(AppLogMessage.create("test log"));
+log.info(AppLogMessage.message("k {} v {}", "key", "value").httpRequest(httpRequest).httpResponse(httpResponse).error(throwable));
 ```
 ```json
 {
@@ -141,14 +141,6 @@ log.info(AppLogMessage.create("test log"));
       "key": ["value"]
     },
     "body": {}
-  },
-  "iso_message": {
-    "direction": "incoming",
-    "mti": "",
-    "data_element": {
-      "2": "",
-      "3": ""
-    }
   },
   "error": {
     "error_message": "",
@@ -185,14 +177,6 @@ it will create log using this format
         "key": ["value"]
       },
       "body": {}
-    },
-    "iso_message": {
-      "direction": "incoming",
-      "mti": "",
-      "data_element": {
-        "2": "",
-        "3": ""
-      }
     },
     "error": {
       "error_message": "",

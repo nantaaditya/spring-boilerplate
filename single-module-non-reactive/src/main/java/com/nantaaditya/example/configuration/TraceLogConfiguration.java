@@ -86,7 +86,7 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
       }
     }
 
-    log.info(AppLogMessage.create(logContent.toString()));
+    log.info(AppLogMessage.message(logContent.toString()));
   }
 
   private static String getURI(Request request) {
@@ -118,7 +118,7 @@ public class TraceLogConfiguration implements HttpExchangeRepository {
         null
     );
 
-    log.info(AppLogMessage.create("#Trace", content));
+    log.info(AppLogMessage.message("#Trace").httpResponse(content));
   }
 
   private boolean isInternalHeader(String headerKey) {

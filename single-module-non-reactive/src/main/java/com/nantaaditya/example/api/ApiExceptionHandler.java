@@ -137,7 +137,7 @@ public class ApiExceptionHandler {
 
   private <S extends Throwable> Response<Object> toError(S source,
       Function<S, Pair<Map<String, List<String>>, Response<Object>>> function) {
-    log.error(AppLogMessage.create(ERROR_LOG, source));
+    log.error(AppLogMessage.message(ERROR_LOG).error(source));
 
     Pair<Map<String, List<String>>, Response<Object>> pair = function.apply(source);
     Map<String, List<String>> errorList = pair.getLeft();
@@ -161,7 +161,7 @@ public class ApiExceptionHandler {
     try {
       return objectMapper.writeValueAsString(violations);
     } catch (JsonProcessingException e) {
-      log.error(AppLogMessage.create("#ApiError - failed convert errors", e));
+      log.error(AppLogMessage.message("#ApiError - failed convert errors").error(e));
       return null;
     }
   }

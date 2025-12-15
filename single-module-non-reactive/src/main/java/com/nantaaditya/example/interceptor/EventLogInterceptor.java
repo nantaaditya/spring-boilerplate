@@ -40,12 +40,12 @@ public class EventLogInterceptor implements HandlerInterceptor {
       byte[] additionalData = ContextHelper.getAdditionalData();
 
       if (context == null) {
-        log.warn(AppLogMessage.create("#EventLog - context is null"));
+        log.warn(AppLogMessage.message("#EventLog - context is null"));
         return;
       }
 
       if (logProperties.isIgnoredTraceLogPath(context.path())) {
-        log.debug(AppLogMessage.create("#EventLog - ignored trace log path"));
+        log.debug(AppLogMessage.message("#EventLog - ignored trace log path"));
         return;
       }
 
@@ -65,10 +65,10 @@ public class EventLogInterceptor implements HandlerInterceptor {
           .additionalData(additionalData)
           .createdDate(LocalDateTime.now())
           .build();
-      log.debug(AppLogMessage.create("#EventLog - save event log", eventLog));
+      log.debug(AppLogMessage.message("#EventLog - save event log").additionalData(eventLog));
       eventLogRepository.save(eventLog);
     } catch (Exception e) {
-      log.error(AppLogMessage.create("#EventLog - failed save event log", e));
+      log.error(AppLogMessage.message("#EventLog - failed save event log").error(e));
     }
   }
 }

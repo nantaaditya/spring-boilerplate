@@ -22,7 +22,7 @@ public class ClientLogResponse implements ClientHttpResponse {
 			this.bytes = StreamUtils.copyToByteArray(response.getBody());
 			this.bis = new ByteArrayInputStream(this.bytes);
 		} catch (IOException ioe) {
-			log.error(AppLogMessage.create("#RestClient - error http client response", ioe));
+			log.error(AppLogMessage.message("#RestClient - error http client response").error(ioe));
 		}
 	}
 

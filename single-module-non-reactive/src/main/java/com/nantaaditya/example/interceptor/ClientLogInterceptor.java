@@ -90,7 +90,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 		appendMaskedHeaders(logBuilder, request.getHeaders());
 		appendMaskedBody(logBuilder, new String(body));
 
-		log.info(AppLogMessage.create(logBuilder.toString()));
+		log.info(AppLogMessage.message(logBuilder.toString()));
 	}
 
 	private void logHttpResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
@@ -108,7 +108,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 			appendMaskedBody(logBuilder, new String(responseBody));
 		}
 
-		log.info(AppLogMessage.create(logBuilder.toString()));
+		log.info(AppLogMessage.message(logBuilder.toString()));
 	}
 
 	private void logJsonRequest(HttpRequest request, byte[] body) {
@@ -119,7 +119,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
         gson.fromJson(maskJsonBody(new String(body)), Map.class)
     );
 
-		log.info(AppLogMessage.create("#Client", content));
+		log.info(AppLogMessage.message("#Client").httpRequest(content));
 	}
 
 	private void logJsonResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
@@ -133,7 +133,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
         !StringUtils.hasText(body) ? null : gson.fromJson(maskJsonBody(body), Map.class)
     );
 
-		log.info(AppLogMessage.create("#Client", content));
+		log.info(AppLogMessage.message("#Client").httpResponse(content));
 	}
 
 	// --- UTILS ---

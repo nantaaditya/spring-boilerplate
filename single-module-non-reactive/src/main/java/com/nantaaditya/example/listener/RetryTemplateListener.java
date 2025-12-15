@@ -29,19 +29,19 @@ public class RetryTemplateListener implements RetryListener {
   @Override
   public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback,
       Throwable throwable) {
-    log.debug(AppLogMessage.create(String.format("#RETRY - close retry [%s]", name), getRetryContextAttribute(context)));
+    log.debug(AppLogMessage.message("#RETRY - close retry [{}]", name).additionalData(getRetryContextAttribute(context)));
     saveExhaustedRetry(context);
   }
 
   @Override
   public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback,
       Throwable throwable) {
-    log.error(AppLogMessage.create(String.format("#RETRY - error retry [%s]", name), throwable, getRetryContextAttribute(context)));
+    log.error(AppLogMessage.message("#RETRY - error retry [{}]", name).error(throwable).additionalData(getRetryContextAttribute(context)));
   }
 
   @Override
   public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
-    log.warn(AppLogMessage.create(String.format("#RETRY - open [%s]", name), getRetryContextAttribute(context)));
+    log.warn(AppLogMessage.message("#RETRY - open [{}]", name).additionalData(getRetryContextAttribute(context)));
     return true;
   }
 
@@ -50,15 +50,13 @@ public class RetryTemplateListener implements RetryListener {
     if (throwable == null) return;
 
     try {
-      log.error(AppLogMessage.create("#RETRY - last error", throwable));
+      log.error(AppLogMessage.message("#RETRY - last error").error(throwable));
       byte [] request = objectMapper.writeValueAsBytes(retryContext.getAttribute("request"));
       deadLetterProcessRepository.save(DeadLetterProcess.create(retryContext, request));
     } catch (Exception e) {
-      log.error(AppLogMessage.create(
-          "#RETRY - failed to save exhausted retry",
-          e,
-          getRetryContextAttribute(retryContext)
-          )
+      log.error(AppLogMessage.message("#RETRY - failed to save exhausted retry")
+              .error(e)
+              .additionalData(getRetryContextAttribute(retryContext))
       );
     }
   }

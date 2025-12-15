@@ -26,7 +26,7 @@ public class DateTimeHelper {
     try {
       return zonedDateTime.format(DateTimeFormatter.ofPattern(pattern));
     } catch (Exception e) {
-      log.error(AppLogMessage.create(String.format("#DateTime - failed convert %s, pattern %s", zonedDateTime, pattern), e));
+      log.error(AppLogMessage.message("#DateTime - failed convert {}, pattern {}", zonedDateTime, pattern).error(e));
       return null;
     }
   }
@@ -37,7 +37,7 @@ public class DateTimeHelper {
       LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(timemillis), ZONE_ID);
       return localDateTime.format(dateTimeFormatter);
     } catch (Exception e) {
-      log.error(AppLogMessage.create(String.format("#DateTime - failed convert %s, pattern %s", timemillis, dateTimeFormatter), e));
+      log.error(AppLogMessage.message("#DateTime - failed convert {}, pattern {}", timemillis, dateTimeFormatter).error(e));
       return null;
     }
   }

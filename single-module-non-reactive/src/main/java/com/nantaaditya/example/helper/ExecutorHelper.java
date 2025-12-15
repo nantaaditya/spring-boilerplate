@@ -9,7 +9,7 @@ public class ExecutorHelper {
 
   public static ThreadPoolTaskExecutor create(String threadNamePrefix, int corePoolSize,
       int maximumPoolSize, int queueCapacity, int keepAliveTime, AsyncMDCTaskDecorator taskDecorator,
-      RejectedExecutionHandler rejectedExecutionHandler) {
+      boolean virtualThreadEnabled, RejectedExecutionHandler rejectedExecutionHandler) {
 
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(corePoolSize);
@@ -20,6 +20,7 @@ public class ExecutorHelper {
     executor.setTaskDecorator(taskDecorator);
     executor.setRejectedExecutionHandler(rejectedExecutionHandler);
     executor.setWaitForTasksToCompleteOnShutdown(true);
+    executor.setVirtualThreads(virtualThreadEnabled);
     executor.initialize();
     return executor;
   }

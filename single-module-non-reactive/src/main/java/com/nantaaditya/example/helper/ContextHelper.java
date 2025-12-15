@@ -32,7 +32,7 @@ public class ContextHelper {
       MDC.put(ContextConstant.REQUEST_ID.getValue(), contextDTO.requestId());
       MDC.put(CONTEXT_KEY, json);
     } catch (JsonProcessingException ex) {
-      log.error(AppLogMessage.create(String.format("#MDC - failed to save %s", CONTEXT_KEY), ex));
+      log.error(AppLogMessage.message("#MDC - failed to save {}", CONTEXT_KEY).error(ex));
     }
   }
 
@@ -55,7 +55,7 @@ public class ContextHelper {
 
       return mapper.readValue(json, new TypeReference<ContextDTO>() {});
     } catch (JsonProcessingException ex) {
-      log.error(AppLogMessage.create(String.format("#MDC - failed to get %s", CONTEXT_KEY), ex));
+      log.error(AppLogMessage.message("#MDC - failed to get {}", CONTEXT_KEY).error(ex));
       return null;
     }
   }

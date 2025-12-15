@@ -3,15 +3,10 @@ package com.nantaaditya.example.model.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
+import java.beans.Transient;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.apache.logging.log4j.message.Message;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Setter
 @Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AppLogMessage implements Message {
@@ -23,52 +18,77 @@ public class AppLogMessage implements Message {
   private JsonLogError error;
   @JsonProperty("additional_data")
   private Object additionalData;
+  @JsonIgnore
+  private Object[] parameters;
 
-  public static AppLogMessage create(String message) {
-    return new AppLogMessage(message, null, null, null, null);
+  private AppLogMessage() {}
+
+  public static AppLogMessage message(String message, Object... parameters) {
+    AppLogMessage logMessage = new AppLogMessage();
+    logMessage.message = message;
+    logMessage.parameters = parameters;
+    return logMessage;
   }
 
-  public static AppLogMessage create(String message, Object additionalData) {
-    return new AppLogMessage(message, null, null, null, additionalData);
+  public AppLogMessage httpRequest(JsonLogHttpRequest httpRequest) {
+    this.httpRequest = httpRequest;
+    return this;
   }
 
-  public static AppLogMessage create(String message, JsonLogHttpRequest httpRequest) {
-    return new AppLogMessage(message, httpRequest, null, null, null);
+  public AppLogMessage httpResponse(JsonLogHttpResponse httpResponse) {
+    this.httpResponse = httpResponse;
+    return this;
   }
 
-  public static AppLogMessage create(String message, JsonLogHttpRequest httpRequest, Object additionalData) {
-    return new AppLogMessage(message, httpRequest, null, null, additionalData);
+  public AppLogMessage error(Throwable error) {
+    this.error = JsonLogError.create(error);
+    return this;
   }
 
-  public static AppLogMessage create(String message, JsonLogHttpResponse httpResponse) {
-    return new AppLogMessage(message, null, httpResponse, null, null);
+  public AppLogMessage additionalData(Object additionalData) {
+    this.additionalData = additionalData;
+    return this;
   }
 
-  public static AppLogMessage create(String message, JsonLogHttpResponse httpResponse, Object additionalData) {
-    return new AppLogMessage(message, null, httpResponse, null, additionalData);
-  }
-
-  public static AppLogMessage create(String message, Throwable throwable) {
-    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), null);
-  }
-
-  public static AppLogMessage create(String message, Throwable throwable, Object additionalData) {
-    return new AppLogMessage(message, null, null, JsonLogError.create(throwable), additionalData);
+  public String getMessage() {
+    return getFormattedMessage();
   }
 
   @Override
   @JsonIgnore
   public String getFormattedMessage() {
-    return message;
+    return format();
   }
 
   @Override
   public Object[] getParameters() {
-    return null;
+    return this.parameters;
   }
 
   @Override
   public Throwable getThrowable() {
     return null;
   }
+
+  @Transient
+  private String format() {
+    StringBuilder sb = new StringBuilder();
+    int argIndex = 0;
+
+    for (int i = 0; i < this.message.length(); i++) {
+      if (i < this.message.length() - 1 && this.message.charAt(i) == '{' && this.message.charAt(i + 1) == '}') {
+        if (argIndex < this.parameters.length) {
+          sb.append(this.parameters[argIndex++]);
+        } else {
+          sb.append("{}");
+        }
+        i++;
+      } else {
+        sb.append(this.message.charAt(i));
+      }
+    }
+
+    return sb.toString();
+  }
+
 }

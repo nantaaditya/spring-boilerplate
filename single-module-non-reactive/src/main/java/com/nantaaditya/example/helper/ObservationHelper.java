@@ -44,7 +44,7 @@ public class ObservationHelper {
 
   public void publishEvent(Observation observation,String key, String value) {
     if (observation == null) {
-      log.warn(AppLogMessage.create("#Observation - no current observation"));
+      log.warn(AppLogMessage.message("#Observation - no current observation"));
       return;
     }
 

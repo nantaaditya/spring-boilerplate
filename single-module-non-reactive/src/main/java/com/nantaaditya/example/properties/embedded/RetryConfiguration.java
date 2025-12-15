@@ -34,14 +34,14 @@ public record RetryConfiguration(
       try {
         Class<?> clazz = Class.forName(tuple.getFirst());
         if (!Throwable.class.isAssignableFrom(clazz)) {
-          log.info(AppLogMessage.create(String.format("#Retry - class not extends Throwable, skipping: %s", clazz)));
+          log.info(AppLogMessage.message("#Retry - class not extends Throwable, skipping: {}", clazz));
           continue;
         }
 
         Class<? extends Throwable> throwableClass = (Class<? extends Throwable>) clazz; //NOSONAR
         maps.put(throwableClass, Boolean.valueOf(tuple.getLast())); //NOSONAR
       } catch (ClassNotFoundException ex) {
-        log.error(AppLogMessage.create("#Retry - could not load retry exception map", ex));
+        log.error(AppLogMessage.message("#Retry - could not load retry exception map").error(ex));
       }
     }
     return maps;

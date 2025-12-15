@@ -24,7 +24,7 @@ public abstract class AbstractRetryProcessorService {
       update(deadLetterProcess);
       doProcess(deadLetterProcess);
     }
-    log.info(AppLogMessage.create(String.format("#Retry - [%s] [%s] total %s retry processed", getProcessType(), getProcessName(), deadLetterProcesses.size())));
+    log.info(AppLogMessage.message("#Retry - [{}] [{}] total {} retry processed", getProcessType(), getProcessName(), deadLetterProcesses.size()));
   }
 
   private void update(DeadLetterProcess deadLetterProcess) {

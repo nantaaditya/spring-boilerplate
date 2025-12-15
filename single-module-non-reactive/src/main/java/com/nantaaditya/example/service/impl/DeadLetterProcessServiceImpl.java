@@ -45,8 +45,8 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
             false, pageRequest);
 
     if (!deadLetterProcessPage.hasContent()) {
-      log.info(AppLogMessage.create(String.format("#DeadLetterProcess - no dead letter processes [%s] [%s] found",
-          request.processType(), request.processName())));
+      log.info(AppLogMessage.message("#DeadLetterProcess - no dead letter processes [{}] [{}] found",
+          request.processType(), request.processName()));
       return;
     }
 
@@ -58,7 +58,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   public void executeRetryProcess(RetryDeadLetterProcessRequest request, List<DeadLetterProcess> deadLetterProcesses) {
     AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(request.processType(), request.processName());
     if (processor == null) {
-      log.warn(AppLogMessage.create(String.format("#DeadLetterProcess - no retry processor handler found with %s - %s", request.processType(), request.processName())));
+      log.warn(AppLogMessage.message("#DeadLetterProcess - no retry processor handler found with {} - {}", request.processType(), request.processName()));
       return;
     }
     processor.execute(deadLetterProcesses);

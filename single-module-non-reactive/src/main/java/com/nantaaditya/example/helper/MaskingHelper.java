@@ -63,7 +63,7 @@ public class MaskingHelper {
 
       return content;
     } catch (Exception e) {
-      log.error(AppLogMessage.create("#Masking - json error", e));
+      log.error(AppLogMessage.message("#Masking - json error").error(e));
       return "not a json";
     }
   }

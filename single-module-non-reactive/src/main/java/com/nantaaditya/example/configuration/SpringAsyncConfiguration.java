@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 
@@ -25,6 +26,9 @@ public class SpringAsyncConfiguration implements AsyncConfigurer {
   @Autowired
   private ObservationWrapper observationWrapper;
 
+  @Value("${spring.threads.virtual.enabled:false}")
+  private boolean virtualThreadEnabled;
+
   @Override
   public Executor getAsyncExecutor() {
     AsyncMDCTaskDecorator asyncMDCTaskDecorator = new AsyncMDCTaskDecorator(observationWrapper);
@@ -36,6 +40,7 @@ public class SpringAsyncConfiguration implements AsyncConfigurer {
         configuration.queueCapacity(),
         configuration.keepAliveSeconds(),
         asyncMDCTaskDecorator,
+        virtualThreadEnabled,
         new AbortPolicy()
     );
   }
@@ -45,8 +50,8 @@ public class SpringAsyncConfiguration implements AsyncConfigurer {
     return new AsyncUncaughtExceptionHandler() {
       @Override
       public void handleUncaughtException(Throwable ex, Method method, Object... params) {
-        log.error(AppLogMessage.create(String.format("#Async - got error %s, httpMethod %s, params %s",
-            ex.getMessage(), method.getName(), params), ex));
+        log.error(AppLogMessage.message("#Async - got error {}, httpMethod {}, params {}",
+            ex.getMessage(), method.getName(), params).error(ex));
       }
     };
   }

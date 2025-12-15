@@ -93,7 +93,7 @@ public abstract class BaseIntegrationTest {
         headers,
         HTTP_METHODS_WITH_PAYLOAD.contains(httpMethod) && request != null ? request : null
     );
-    AppLogMessage appLogMessage = AppLogMessage.create("INCOMING", content);
+    AppLogMessage appLogMessage = AppLogMessage.message("INCOMING").httpRequest(content);
     log(appLogMessage);
 
     return mockMvc.perform(
@@ -149,7 +149,7 @@ public abstract class BaseIntegrationTest {
         appendHeader(response),
         body
     );
-    log(AppLogMessage.create("OUTGOING", content));
+    log(AppLogMessage.message("OUTGOING").httpResponse(content));
 
     resultActions
         .andExpect(status().is(httpStatus.value()))

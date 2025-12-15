@@ -116,7 +116,7 @@ class DeadLetterProcessServiceImplTest {
 
     @Override
     protected void doProcess(DeadLetterProcess deadLetterProcess) {
-      log.info(AppLogMessage.create("#DeadLLetterProcess", deadLetterProcess));
+      log.info(AppLogMessage.message("#DeadLLetterProcess").additionalData(deadLetterProcess));
     }
   }
 }

@@ -23,7 +23,7 @@ public class RetryHelper {
       Function<S, T> action, Function<E, T> fallbackAction, S request, RetryContext context) {
     T response = null;
     try {
-      log.debug(AppLogMessage.create(String.format("#Retry - execute request [%s] [%s]", processType, processName), request));
+      log.debug(AppLogMessage.message("#Retry - execute request [{}] [{}]", processType, processName).additionalData(request));
       response = action.apply(request);
       return response;
     } catch (Throwable ex) {

@@ -43,7 +43,7 @@ class AbstractRetryProcessorServiceTest {
 
     @Override
     protected void doProcess(DeadLetterProcess deadLetterProcess) {
-      log.info(AppLogMessage.create("retry content", deadLetterProcess));
+      log.info(AppLogMessage.message("retry content").additionalData(deadLetterProcess));
     }
   }
 

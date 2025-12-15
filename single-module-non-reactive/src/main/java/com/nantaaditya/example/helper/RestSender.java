@@ -91,7 +91,7 @@ public class RestSender {
 
       return restClient.exchange(pathBuilder.toString(), request.method(), httpEntity, request.responseType());
     } catch (Throwable ex) {
-      log.error(AppLogMessage.create(String.format("#Client - [%s] has error, ", this.name), ex));
+      log.error(AppLogMessage.message("#Client - [{}] has error, ", this.name).error(ex));
       if (retryTemplate != null)
         setAttributeOnRetryContext(request.retryContext(), httpEntity, request.request(), request.processName(), ex);
       throw ex;

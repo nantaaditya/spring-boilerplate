@@ -24,6 +24,6 @@ public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
   @Override
   protected void doProcess(DeadLetterProcess deadLetterProcess) {
-    log.info(AppLogMessage.create("#DeadLetterProcess - payload", deadLetterProcess));
+    log.info(AppLogMessage.message("#DeadLetterProcess - payload").additionalData(deadLetterProcess));
   }
 }
