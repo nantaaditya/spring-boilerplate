@@ -5,6 +5,8 @@ server:
 
 spring:
   application.name: example-app-test
+  threads:
+    virtual.enabled: true
 
   banner:
     location: classpath:banner.txt
@@ -110,3 +112,8 @@ apps:
           maxPerRoute: 5
         enable-log: true
         disable-ssl-verification: true
+    network-configuration:
+      socket-time-out: 10000
+      time-to-live: 60000
+      validate-after-inactivity: 5000
+      evict-idle-connection: 15000
