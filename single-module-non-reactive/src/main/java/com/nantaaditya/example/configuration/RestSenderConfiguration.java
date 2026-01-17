@@ -1,9 +1,11 @@
 package com.nantaaditya.example.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.factory.RestSenderFactory;
 import com.nantaaditya.example.helper.RestClientHelper;
 import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RetryTemplateHelper;
+import com.nantaaditya.example.properties.RetryProperties;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,7 +26,8 @@ public class RestSenderConfiguration {
 
   @Bean
   public RestSenderFactory restSenderFactory(RestClientHelper restClientHelper,
-      RetryTemplateHelper retryTemplateHelper) {
+      RetryTemplateHelper retryTemplateHelper, RetryProperties retryProperties,
+      ObjectMapper objectMapper) {
     RestSenderFactory restSenderFactory = new RestSenderFactory();
 
     Set<String> keys = new HashSet<>(restClientHelper.getClientNames());
@@ -32,8 +35,9 @@ public class RestSenderConfiguration {
     Map<String, RestSender> restSenders = new HashMap<>();
     for (String key : keys) {
       String beanName = key + POSTFIX_BEAN_NAME;
-      restSenders.put(beanName, new RestSender.Builder(clientId, key, restClientHelper.getRestClient(key))
+      restSenders.put(beanName, new RestSender.Builder(clientId, key, restClientHelper.getRestClient(key), objectMapper)
           .retryTemplate(retryTemplateHelper.getRetryTemplate(key))
+          .retryConfiguration(retryProperties.get(key))
           .build()
       );
       restSenderFactory.setRestSenders(restSenders);

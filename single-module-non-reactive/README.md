@@ -81,28 +81,36 @@ curl -XPOST -H "Content-type: application/json" \
 before that you need to create bean that extends `AbstractRetryProcessorService`
 
 ```java
-@Service
-public class ExampleRetryProcessorService extends AbstractRetryProcessorService {
+public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
-  private DeadLetterProcessRepository deadLetterProcessRepository;
-
-  public ExampleRetryProcessorService(DeadLetterProcessRepository deadLetterProcessRepository) {
-    super(deadLetterProcessRepository);
+  public ExampleRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository,
+          ObjectMapper objectMapper) {
+    super(deadLetterProcessRepository, objectMapper);
   }
 
   @Override
   public String getProcessType() {
     return "type";
-  };
-  
+  }
+
   @Override
   public String getProcessName() {
     return "name";
   }
-  
+
   @Override
-  protected void doProcess(DeadLetterProcess deadLetterProcess) {
-    // do something
+  public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
+    return true;
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
+    // do something on success
+  }
+
+  @Override
+  public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
+    // do something on error
   }
 }
 ```

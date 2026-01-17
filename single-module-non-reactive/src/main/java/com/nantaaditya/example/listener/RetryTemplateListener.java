@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.model.constant.RetryConstant;
 import com.nantaaditya.example.model.dto.AppLogMessage;
+import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
@@ -52,7 +55,15 @@ public class RetryTemplateListener implements RetryListener {
     try {
       log.error(AppLogMessage.message("#RETRY - last error").error(throwable));
       byte [] request = objectMapper.writeValueAsBytes(retryContext.getAttribute("request"));
-      deadLetterProcessRepository.save(DeadLetterProcess.create(retryContext, request));
+      List<RetryHistoryContext> retryHistories = new LinkedList<>();
+      retryHistories.add(new RetryHistoryContext(
+          0,
+          (String) retryContext.getAttribute(RetryConstant.RESPONSE.getName()),
+          retryContext.getLastThrowable().getMessage()
+      ));
+      byte[] retryHistoriesBytes = objectMapper.writeValueAsBytes(retryHistories);
+
+      deadLetterProcessRepository.save(DeadLetterProcess.create(retryContext, request, retryHistoriesBytes));
     } catch (Exception e) {
       log.error(AppLogMessage.message("#RETRY - failed to save exhausted retry")
               .error(e)
