@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.nantaaditya.example.entity.EventLog;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.GsonHelper;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.CacheBodyRequest;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import com.nantaaditya.example.properties.LogProperties;
@@ -13,11 +14,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-@Slf4j
+@Log4j2
 public class EventLogInterceptor implements HandlerInterceptor {
 
   private final EventLogRepository eventLogRepository;
@@ -39,12 +40,12 @@ public class EventLogInterceptor implements HandlerInterceptor {
       byte[] additionalData = ContextHelper.getAdditionalData();
 
       if (context == null) {
-        log.warn("#EventLog - context is null");
+        log.warn(AppLogMessage.message("#EventLog - context is null"));
         return;
       }
 
       if (logProperties.isIgnoredTraceLogPath(context.path())) {
-        log.debug("#EventLog - ignored trace log path");
+        log.debug(AppLogMessage.message("#EventLog - ignored trace log path"));
         return;
       }
 
@@ -64,10 +65,10 @@ public class EventLogInterceptor implements HandlerInterceptor {
           .additionalData(additionalData)
           .createdDate(LocalDateTime.now())
           .build();
-      log.debug("#EventLog - save event log {}", eventLog);
+      log.debug(AppLogMessage.message("#EventLog - save event log").additionalData(eventLog));
       eventLogRepository.save(eventLog);
     } catch (Exception e) {
-      log.error("#EventLog - failed save event log, ", e);
+      log.error(AppLogMessage.message("#EventLog - failed save event log").error(e));
     }
   }
 }

@@ -5,12 +5,17 @@ import lombok.Getter;
 @Getter
 public enum RetryConstant {
 
+  CLIENT_NAME("client_name"),
+  METHOD("method"),
+  PATH("path"),
+  HEADERS("headers"),
   REQUEST("request"),
-  REQUEST_ID("requestId"),
   RESPONSE("response"),
+  REQUEST_ID("requestId"),
   PROCESS_TYPE("process_type"),
   PROCESS_NAME("process_name"),
-  EXCEPTION("exception");
+  EXCEPTION("exception"),
+  MAX_RETRY("max_retry");
 
   private String name;
 

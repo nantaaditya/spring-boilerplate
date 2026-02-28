@@ -4,11 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.util.StringUtils;
 
-@Slf4j
+@Log4j2
 public class MaskingHelper {
 
   public static final String MASKED_CHAR = "*";
@@ -62,7 +63,7 @@ public class MaskingHelper {
 
       return content;
     } catch (Exception e) {
-      log.error("#Masking - json error, ", e);
+      log.error(AppLogMessage.message("#Masking - json error").error(e));
       return "not a json";
     }
   }

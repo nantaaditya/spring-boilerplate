@@ -2,22 +2,21 @@ package com.nantaaditya.example.interceptor;
 
 import com.google.gson.Gson;
 import com.nantaaditya.example.helper.MaskingHelper;
-import com.nantaaditya.example.model.constant.ClientLogFormat;
+import com.nantaaditya.example.model.constant.LogFormat;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ClientLogResponse;
-import com.nantaaditya.example.properties.ClientProperties;
+import com.nantaaditya.example.model.dto.JsonLogHttpRequest;
+import com.nantaaditya.example.model.dto.JsonLogHttpResponse;
 import com.nantaaditya.example.properties.LogProperties;
-import io.micrometer.core.instrument.util.StringEscapeUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
@@ -25,9 +24,11 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
-@Slf4j
+@Log4j2
 @Component
 public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 
@@ -35,11 +36,11 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 
 	private final Gson gson;
 	private final Set<String> maskingKeys;
-	private final ClientLogFormat logFormat;
+	private final LogFormat logFormat;
 
-	public ClientLogInterceptor(Gson gson, LogProperties logProperties, ClientProperties clientProperties) {
+	public ClientLogInterceptor(Gson gson, LogProperties logProperties) {
 		this.gson = gson;
-		this.logFormat = clientProperties.logFormat();
+		this.logFormat = logProperties.logFormat();
 		this.maskingKeys = new HashSet<>(logProperties.getSensitiveFields());
 	}
 
@@ -60,22 +61,22 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 	}
 
 	private void logRequest(HttpRequest request, byte[] body) {
-		if (ClientLogFormat.HTTP == logFormat) {
+		if (LogFormat.TEXT == logFormat) {
 			logHttpRequest(request, body);
 		}
 
-		if (ClientLogFormat.JSON == logFormat) {
+		if (LogFormat.JSON == logFormat) {
 			logJsonRequest(request, body);
 		}
 	}
 
 	private void logResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
 		stopWatch.stop();
-		if (ClientLogFormat.HTTP == logFormat) {
+		if (LogFormat.TEXT == logFormat) {
 			logHttpResponse(response, stopWatch);
 		}
 
-		if (ClientLogFormat.JSON == logFormat) {
+		if (LogFormat.JSON == logFormat) {
 			logJsonResponse(response, stopWatch);
 		}
 	}
@@ -89,7 +90,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 		appendMaskedHeaders(logBuilder, request.getHeaders());
 		appendMaskedBody(logBuilder, new String(body));
 
-		log.info(logBuilder.toString());
+		log.info(AppLogMessage.message(logBuilder.toString()));
 	}
 
 	private void logHttpResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
@@ -107,31 +108,32 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 			appendMaskedBody(logBuilder, new String(responseBody));
 		}
 
-		log.info(logBuilder.toString());
+		log.info(AppLogMessage.message(logBuilder.toString()));
 	}
 
 	private void logJsonRequest(HttpRequest request, byte[] body) {
-		Map<String, Object> logMap = new LinkedHashMap<>();
-		logMap.put("method", request.getMethod());
-		logMap.put("uri", request.getURI());
-		logMap.put("headers", getMaskedHeaders(request.getHeaders()));
-		logMap.put("body", maskJsonBody(new String(body)));
+    JsonLogHttpRequest content = new JsonLogHttpRequest(
+        request.getMethod().name(),
+        request.getURI().toString(),
+        getMaskedHeaders(request.getHeaders()),
+        gson.fromJson(maskJsonBody(new String(body)), Map.class)
+    );
 
-		log.info("{}", StringEscapeUtils.escapeJson(gson.toJson(logMap)));
+		log.info(AppLogMessage.message("#Client").httpRequest(content));
 	}
 
 	private void logJsonResponse(ClientLogResponse response, StopWatch stopWatch) throws IOException {
-		Map<String, Object> logMap = new LinkedHashMap<>();
-		logMap.put("duration", stopWatch.getTime(TimeUnit.MILLISECONDS) + " ms");
-		logMap.put("http code", response.getStatusCode());
-		logMap.put("headers", getMaskedHeaders(response.getHeaders()));
+    String body = new String(response.getBodyBytes(), StandardCharsets.UTF_8);
+    JsonLogHttpResponse content = new JsonLogHttpResponse(
+        null,
+        null,
+        response.getStatusCode().toString(),
+        String.format("[%s] ms", stopWatch.getTime(TimeUnit.MILLISECONDS)),
+        getMaskedHeaders(response.getHeaders()),
+        !StringUtils.hasText(body) ? null : gson.fromJson(maskJsonBody(body), Map.class)
+    );
 
-		String body = new String(response.getBodyBytes(), StandardCharsets.UTF_8);
-		if (StringUtils.hasText(body)) {
-			logMap.put("body", maskJsonBody(body));
-		}
-
-		log.info("{}", StringEscapeUtils.escapeJson(gson.toJson(logMap)));
+		log.info(AppLogMessage.message("#Client").httpResponse(content));
 	}
 
 	// --- UTILS ---
@@ -147,8 +149,8 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 		});
 	}
 
-	private Map<String, List<String>> getMaskedHeaders(HttpHeaders headers) {
-		Map<String, List<String>> masked = new HashMap<>();
+	private MultiValueMap<String, String> getMaskedHeaders(HttpHeaders headers) {
+		MultiValueMap<String, String> masked = new LinkedMultiValueMap<>();
 		headers.forEach((key, values) -> {
 			List<String> processed = new ArrayList<>();
 			for (String value : values) {

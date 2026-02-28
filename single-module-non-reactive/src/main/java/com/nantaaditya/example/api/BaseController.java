@@ -21,12 +21,12 @@ public class BaseController {
   protected  <T> ResponseEntity<Response<T>> toResponse(Response<T> tResponse) {
     ResponseCode responseCode = ResponseCode.fromCode(tResponse.getResponse().getCode());
 
-    HttpStatusCode httpStatusCode = ResponseCode.SUCCESS == responseCode ?
-        HttpStatus.OK : HttpStatus.BAD_REQUEST;
+    boolean isSuccess = ResponseCode.SUCCESS == responseCode;
+    HttpStatusCode httpStatusCode = isSuccess ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
 
     observationHelper.decorateErrorObservation(
         observationWrapper,
-        new GeneralFlowException(responseCode),
+        isSuccess ? null : new GeneralFlowException(responseCode),
         responseCode
     );
 

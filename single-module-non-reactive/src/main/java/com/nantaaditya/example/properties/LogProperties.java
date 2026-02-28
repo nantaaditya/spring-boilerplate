@@ -1,19 +1,20 @@
 package com.nantaaditya.example.properties;
 
 import com.nantaaditya.example.helper.StringHelper;
+import com.nantaaditya.example.model.constant.LogFormat;
 import java.util.HashSet;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.AntPathMatcher;
 
-@Slf4j
 @ConfigurationProperties(value = "apps.log")
 public record LogProperties(
     boolean enableTraceLog,
     boolean enableMetricLog,
+    boolean enableApiLog,
     String ignoredTraceLogPath,
-    String sensitiveField
+    String sensitiveField,
+    LogFormat logFormat
 ) {
 
   private static final AntPathMatcher matcher = new AntPathMatcher();

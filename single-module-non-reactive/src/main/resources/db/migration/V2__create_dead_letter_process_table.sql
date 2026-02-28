@@ -7,9 +7,17 @@ create table if not exists dead_letter_process (
     version int,
     process_type varchar(50),
     process_name varchar(100),
+    idempotency_key varchar(100),
+    client_name varchar(50),
+    method varchar(10),
+    path text,
+    headers text,
     last_error text,
     payload bytea,
-    processed boolean
+    retry_count int default 0,
+    max_retry int,
+    status varchar(10),
+    retry_histories bytea
 );
 
-create index if not exists idx_deadletterprocess_type_name_processed on dead_letter_process(process_type, process_name, processed);
+create index if not exists idx_deadletterprocess_type_name_status on dead_letter_process(process_type, process_name, status);

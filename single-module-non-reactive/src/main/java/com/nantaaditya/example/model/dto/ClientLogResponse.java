@@ -3,13 +3,13 @@ package com.nantaaditya.example.model.dto;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.util.StreamUtils;
 
-@Slf4j
+@Log4j2
 public class ClientLogResponse implements ClientHttpResponse {
 
 	private ClientHttpResponse parent;
@@ -22,7 +22,7 @@ public class ClientLogResponse implements ClientHttpResponse {
 			this.bytes = StreamUtils.copyToByteArray(response.getBody());
 			this.bis = new ByteArrayInputStream(this.bytes);
 		} catch (IOException ioe) {
-			log.error("#RestClient - error http client response, ", ioe);
+			log.error(AppLogMessage.message("#RestClient - error http client response").error(ioe));
 		}
 	}
 

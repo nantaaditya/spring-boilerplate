@@ -1,23 +1,26 @@
 package com.nantaaditya.example.helper;
 
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
-@Slf4j
+@Log4j2
 public class TaskRetryHelper {
 
   private final BlockingQueue<Runnable> retryQueue;
   private final Executor executor;
+  private final boolean virtualThreadEnabled;
 
   public TaskRetryHelper(AsyncMDCTaskDecorator asyncMDCTaskDecorator,
-      AsyncConfiguration asyncConfiguration, int maxRetryRejectedTask) {
+      AsyncConfiguration asyncConfiguration, boolean virtualThreadEnabled, int maxRetryRejectedTask) {
     this.retryQueue = new LinkedBlockingQueue<>(maxRetryRejectedTask);
     this.executor = createExecutor(asyncConfiguration, asyncMDCTaskDecorator);
+    this.virtualThreadEnabled = virtualThreadEnabled;
     runRejectedTask();
   }
 
@@ -30,6 +33,7 @@ public class TaskRetryHelper {
         configuration.queueCapacity(),
         configuration.keepAliveSeconds(),
         asyncMDCTaskDecorator,
+        virtualThreadEnabled,
         new CallerRunsPolicy()
     );
   }
@@ -38,10 +42,10 @@ public class TaskRetryHelper {
     try {
       boolean success = retryQueue.offer(task);
       if (!success) {
-        log.error("#RetryExecutor - retry queue full, dropping task.");
+        log.error(AppLogMessage.message("#RetryExecutor - retry queue full, dropping task"));
       }
     } catch (Exception e) {
-      log.error("#RetryExecutor - failed to re-enqueue task, error: {},", e.getMessage(), e);
+      log.error(AppLogMessage.message("#RetryExecutor - failed to re-enqueue task").error(e));
     }
   }
 
@@ -53,7 +57,7 @@ public class TaskRetryHelper {
           try {
             executor.execute(task);
           } catch (RejectedExecutionException e) {
-            log.error("#RetryExecutor is full — re-queueing task");
+            log.error(AppLogMessage.message("#RetryExecutor is full — re-queueing task"));
             Thread.sleep(1000);
             enqueue(task);
           }

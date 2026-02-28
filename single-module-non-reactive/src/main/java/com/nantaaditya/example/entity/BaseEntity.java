@@ -3,6 +3,7 @@ package com.nantaaditya.example.entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -23,9 +24,9 @@ public class BaseEntity {
   @LastModifiedBy
   private String updatedBy;
   @CreatedDate
-  private long createdDate;
+  private LocalDateTime createdDate;
   @LastModifiedDate
-  private long updatedDate;
+  private LocalDateTime updatedDate;
   @Version
   private long version;
 }

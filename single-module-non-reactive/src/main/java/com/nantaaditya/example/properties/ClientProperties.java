@@ -1,7 +1,7 @@
 package com.nantaaditya.example.properties;
 
-import com.nantaaditya.example.model.constant.ClientLogFormat;
 import com.nantaaditya.example.properties.embedded.ClientConfiguration;
+import com.nantaaditya.example.properties.embedded.ClientNetworkConfiguration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(value = "apps.client")
 public record ClientProperties(
     Map<String, ClientConfiguration> configurations,
-    ClientLogFormat logFormat
+    ClientNetworkConfiguration networkConfiguration
 ) {
 
   public ClientConfiguration getClientConfiguration(String clientName) {

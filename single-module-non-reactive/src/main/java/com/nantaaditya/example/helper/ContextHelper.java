@@ -5,13 +5,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nantaaditya.example.model.constant.ContextConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import java.nio.charset.StandardCharsets;
 import java.util.function.UnaryOperator;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.MDC;
 
-@Slf4j
+@Log4j2
 public class ContextHelper {
 
   private static final ObjectMapper mapper = new ObjectMapper();
@@ -31,7 +32,7 @@ public class ContextHelper {
       MDC.put(ContextConstant.REQUEST_ID.getValue(), contextDTO.requestId());
       MDC.put(CONTEXT_KEY, json);
     } catch (JsonProcessingException ex) {
-      log.error("#MDC - failed to save {}", CONTEXT_KEY, ex);
+      log.error(AppLogMessage.message("#MDC - failed to save {}", CONTEXT_KEY).error(ex));
     }
   }
 
@@ -54,7 +55,7 @@ public class ContextHelper {
 
       return mapper.readValue(json, new TypeReference<ContextDTO>() {});
     } catch (JsonProcessingException ex) {
-      log.error("#MDC - failed to get {}", CONTEXT_KEY, ex);
+      log.error(AppLogMessage.message("#MDC - failed to get {}", CONTEXT_KEY).error(ex));
       return null;
     }
   }

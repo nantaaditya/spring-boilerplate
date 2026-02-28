@@ -6,6 +6,7 @@ import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.model.constant.HeaderConstant;
 import com.nantaaditya.example.model.constant.ObservationConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.CacheBodyRequest;
 import com.nantaaditya.example.model.dto.ContextDTO;
 import io.micrometer.observation.Observation;
@@ -17,15 +18,15 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Slf4j
-@Component
+@Log4j2
+@Component("appHeaderFilter")
 public class HeaderFilter extends OncePerRequestFilter {
 
   @Autowired
@@ -36,8 +37,6 @@ public class HeaderFilter extends OncePerRequestFilter {
 
   @Value("${server.servlet.context-path}")
   private String contextPath;
-
-  private static final String ERROR_KEY = "error";
 
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -61,8 +60,8 @@ public class HeaderFilter extends OncePerRequestFilter {
     try (Observation.Scope scope = observation.openScope()) {
       MDC.setContextMap(contextMap);
       filterChain.doFilter(httpServletRequest, getResponseWrapper(response, observation));
-    }  catch (Throwable throwable) {
-      log.error("#Observation - error {}", throwable.getMessage());
+    } catch (Throwable throwable) {
+      log.error(AppLogMessage.message("#Observation - error").error(throwable));
       observationHelper.decorateErrorObservation(observationWrapper, throwable, null);
       throw throwable;
     } finally {
@@ -95,9 +94,6 @@ public class HeaderFilter extends OncePerRequestFilter {
       @Override
       public void flushBuffer() throws IOException {
         super.flushBuffer();
-        if (observation != null && !observation.isNoop()) {
-          observation.stop();
-        }
         observationWrapper.clear();
       }
     };

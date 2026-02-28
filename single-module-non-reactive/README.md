@@ -8,7 +8,7 @@ this module include several capabilities:
 - endpoint to retry dead_letter_process
 - masking sensitive PII data on log
 - response time tracing on each endpoint call on log
-- segregate log for apps, metrics, response time, and error
+- structured log & segregate log for apps, metrics, response time, and error
 - retryable process based on retry policy
 - external client auto configuration
 - open-api & swagger
@@ -81,28 +81,36 @@ curl -XPOST -H "Content-type: application/json" \
 before that you need to create bean that extends `AbstractRetryProcessorService`
 
 ```java
-@Service
-public class ExampleRetryProcessorService extends AbstractRetryProcessorService {
+public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
-  private DeadLetterProcessRepository deadLetterProcessRepository;
-
-  public ExampleRetryProcessorService(DeadLetterProcessRepository deadLetterProcessRepository) {
-    super(deadLetterProcessRepository);
+  public ExampleRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository,
+          ObjectMapper objectMapper) {
+    super(deadLetterProcessRepository, objectMapper);
   }
 
   @Override
   public String getProcessType() {
     return "type";
-  };
-  
+  }
+
   @Override
   public String getProcessName() {
     return "name";
   }
-  
+
   @Override
-  protected void doProcess(DeadLetterProcess deadLetterProcess) {
-    // do something
+  public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
+    return true;
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
+    // do something on success
+  }
+
+  @Override
+  public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
+    // do something on error
   }
 }
 ```
@@ -115,11 +123,86 @@ Add the sensitive data key on `apps.log.sensitive-field` props, it supports both
 By default, it enables duration on trace log as long as your endpoint path not ignored on `apps.log.ignored-trace-log-path`.
 If you want to disable just change `apps.log.enable-trace-log` props.
 
-### segregate log for apps, metrics, response time, and error
+### structured log & segregate log for apps, metrics, response time, and error
+for structured log it use log4j2 with custom json format, on each log message you must use `AppLogMessage`
+
+```java
+log.info(AppLogMessage.message("k {} v {}", "key", "value").httpRequest(httpRequest).httpResponse(httpResponse).error(throwable));
+```
+```json
+{
+  "message": "",
+  "http_request": {
+    "http_method": "",
+    "uri": "",
+    "headers": {
+      "key": ["value"]
+    },
+    "body": {}
+  },
+  "http_response": {
+    "http_method": "",
+    "uri": "",
+    "http_code": "",
+    "duration": "",
+    "headers": {
+      "key": ["value"]
+    },
+    "body": {}
+  },
+  "error": {
+    "error_message": "",
+    "error_stacktrace": [
+      ""
+    ]
+  },
+  "additional_data": {}
+}
+```
+it will create log using this format
+```json
+{
+  "timestamp":"2025-12-07 18:52:13:769",
+  "level":"INFO",
+  "app_version":"1.0.0",
+  "class":"itya.example.api.BaseIntegrationTest",
+  "context":{
+    "message": "",
+    "http_request": {
+      "http_method": "",
+      "uri": "",
+      "headers": {
+        "key": ["value"]
+      },
+      "body": {}
+    },
+    "http_response": {
+      "http_method": "",
+      "uri": "",
+      "http_code": "",
+      "duration": "",
+      "headers": {
+        "key": ["value"]
+      },
+      "body": {}
+    },
+    "error": {
+      "error_message": "",
+      "error_stacktrace": [
+        ""
+      ]
+    },
+    "additional_data": {}
+  },
+  "trace_id":"69356a6d142824fb93930087c5b8343a",
+  "span_id":"93930087c5b8343a",
+  "request_id":"0nsmg6ms5jxme"
+}
+```
+
 By default, it will segregate log for apps, metrics, response time, and error.
 - for app log: `${LOG_PATH}/cms-api.log`
 - for metric log: `${LOG_PATH}/metrics.log`
-- for error log: `${LOG_PATH}/error.log`
 - for trace log: `${LOG_PATH}/trace.log`
 
 ### retryable process based on retry policy

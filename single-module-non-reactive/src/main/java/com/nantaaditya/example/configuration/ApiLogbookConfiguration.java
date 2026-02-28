@@ -1,0 +1,39 @@
+package com.nantaaditya.example.configuration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.nantaaditya.example.helper.ApiLogbookFormatter;
+import com.nantaaditya.example.helper.ApiLogbookWriter;
+import com.nantaaditya.example.properties.LogProperties;
+import org.slf4j.MDC;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.zalando.logbook.HttpRequest;
+import org.zalando.logbook.Logbook;
+import org.zalando.logbook.LogbookCreator;
+import org.zalando.logbook.core.DefaultSink;
+import org.zalando.logbook.core.HeaderFilters;
+
+@Configuration
+public class ApiLogbookConfiguration {
+  @Bean
+  @Primary
+  public Logbook logbook(ObjectMapper objectMapper, Gson gson, LogProperties logProperties) {
+    return LogbookCreator.builder()
+        .condition(request -> logProperties.enableApiLog())
+        .correlationId(this::composeCorrelationId)
+        .headerFilter(HeaderFilters.replaceHeaders(logProperties.getSensitiveFields(), "*"))
+        .sink(new DefaultSink(
+          new ApiLogbookFormatter(objectMapper, gson, logProperties),
+          new ApiLogbookWriter(objectMapper)
+        ))
+        .build();
+  }
+
+  private String composeCorrelationId(HttpRequest httpRequest) {
+    String requestId = httpRequest.getHeaders().getFirst("x-request-id");
+    MDC.put("requestId", requestId);
+    return requestId;
+  }
+}

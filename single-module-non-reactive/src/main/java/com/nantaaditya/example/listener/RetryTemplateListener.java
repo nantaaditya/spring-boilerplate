@@ -3,16 +3,20 @@ package com.nantaaditya.example.listener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.model.constant.RetryConstant;
+import com.nantaaditya.example.model.dto.AppLogMessage;
+import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 
-@Slf4j
+@Log4j2
 public class RetryTemplateListener implements RetryListener {
 
   private final String name;
@@ -28,19 +32,19 @@ public class RetryTemplateListener implements RetryListener {
   @Override
   public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback,
       Throwable throwable) {
-    log.debug("#RETRY - close retry [{}] {}", name, getRetryContextAttribute(context));
+    log.debug(AppLogMessage.message("#RETRY - close retry [{}]", name).additionalData(getRetryContextAttribute(context)));
     saveExhaustedRetry(context);
   }
 
   @Override
   public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback,
       Throwable throwable) {
-    log.error("#RETRY - error retry [{}] {} ", name, getRetryContextAttribute(context));
+    log.error(AppLogMessage.message("#RETRY - error retry [{}]", name).error(throwable).additionalData(getRetryContextAttribute(context)));
   }
 
   @Override
   public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
-    log.warn("#RETRY - open [{}] {}", name, getRetryContextAttribute(context));
+    log.warn(AppLogMessage.message("#RETRY - open [{}]", name).additionalData(getRetryContextAttribute(context)));
     return true;
   }
 
@@ -49,22 +53,32 @@ public class RetryTemplateListener implements RetryListener {
     if (throwable == null) return;
 
     try {
-      log.error("#RETRY - last error {}", throwable.getMessage());
+      log.error(AppLogMessage.message("#RETRY - last error").error(throwable));
       byte [] request = objectMapper.writeValueAsBytes(retryContext.getAttribute("request"));
-      deadLetterProcessRepository.save(DeadLetterProcess.create(retryContext, request));
+      List<RetryHistoryContext> retryHistories = new LinkedList<>();
+      retryHistories.add(new RetryHistoryContext(
+          0,
+          (String) retryContext.getAttribute(RetryConstant.RESPONSE.getName()),
+          retryContext.getLastThrowable().getMessage()
+      ));
+      byte[] retryHistoriesBytes = objectMapper.writeValueAsBytes(retryHistories);
+
+      deadLetterProcessRepository.save(DeadLetterProcess.create(retryContext, request, retryHistoriesBytes));
     } catch (Exception e) {
-      log.error("#RETRY - failed to save exhausted retry {}, ",
-          getRetryContextAttribute(retryContext), e);
+      log.error(AppLogMessage.message("#RETRY - failed to save exhausted retry")
+              .error(e)
+              .additionalData(getRetryContextAttribute(retryContext))
+      );
     }
   }
 
   @SneakyThrows
-  private String getRetryContextAttribute(RetryContext retryContext) {
+  private Map<String, Object> getRetryContextAttribute(RetryContext retryContext) {
     Map<String, Object> attributes = new HashMap<>();
     for (String attributeName : retryContext.attributeNames()) {
       if (attributeName.equals(RetryConstant.EXCEPTION.getName())) continue;
       attributes.put(attributeName, retryContext.getAttribute(attributeName));
     }
-    return objectMapper.writeValueAsString(attributes);
+    return attributes;
   }
 }
