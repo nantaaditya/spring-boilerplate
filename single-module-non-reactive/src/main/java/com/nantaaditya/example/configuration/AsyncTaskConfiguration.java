@@ -1,14 +1,15 @@
 package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.helper.AsyncMDCTaskDecorator;
+import com.nantaaditya.example.helper.DeadLetterRejectedExecutionHandler;
 import com.nantaaditya.example.helper.ExecutorHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
-import com.nantaaditya.example.helper.TaskRetryHelper;
+import com.nantaaditya.example.model.constant.AsyncRejectedStrategy;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.AsyncTaskProperties;
 import com.nantaaditya.example.properties.embedded.AsyncConfiguration;
+import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,8 @@ public class AsyncTaskConfiguration {
   private GenericWebApplicationContext applicationContext;
   @Autowired
   private ObservationWrapper observationWrapper;
+  @Autowired
+  private DeadLetterProcessRepository deadLetterProcessRepository;
   @Value("${spring.threads.virtual.enabled:false}")
   private boolean virtualThreadEnabled;
 
@@ -41,22 +44,20 @@ public class AsyncTaskConfiguration {
     }
 
     AsyncMDCTaskDecorator asyncMDCTaskDecorator = new AsyncMDCTaskDecorator(observationWrapper);
-    TaskRetryHelper taskRetryHelper = new TaskRetryHelper(asyncMDCTaskDecorator,
-        asyncProperties.retryRejectedTask(), virtualThreadEnabled, asyncProperties.maxRetryRejectedTask());
     asyncProperties.configurations()
         .forEach((key, value) -> applicationContext.registerBean(
                 key + POSTFIX_BEAN_NAME,
                 ThreadPoolTaskExecutor.class,
-                () -> createAsyncExecutor(asyncProperties.getConfiguration(key), asyncMDCTaskDecorator, taskRetryHelper),
+                () -> createAsyncExecutor(asyncProperties.getConfiguration(key), asyncMDCTaskDecorator),
                 definition -> definition.setLazyInit(true)
             )
         );
 
-    log.debug(AppLogMessage.message("#AsyncExecutor - bean {} created", asyncProperties.getConfiguration(POSTFIX_BEAN_NAME)));
+    log.debug(AppLogMessage.message("#AsyncExecutor - beans created for {}", asyncProperties.configurations().keySet()));
   }
 
   private ThreadPoolTaskExecutor createAsyncExecutor(AsyncConfiguration configuration,
-      AsyncMDCTaskDecorator asyncMDCTaskDecorator, TaskRetryHelper taskRetryHelper) {
+      AsyncMDCTaskDecorator asyncMDCTaskDecorator) {
     return ExecutorHelper.create(
         configuration.threadNamePrefix(),
         configuration.corePoolSize(),
@@ -65,13 +66,15 @@ public class AsyncTaskConfiguration {
         configuration.keepAliveSeconds(),
         asyncMDCTaskDecorator,
         virtualThreadEnabled,
-        new RejectedExecutionHandler() {
-          @Override
-          public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {
-            log.warn(AppLogMessage.message("#AsyncExecutor - rejected execution of task {}", task));
-            taskRetryHelper.enqueue(task);
-          }
-        }
+        buildRejectedHandler(configuration.rejectedTaskStrategy())
     );
+  }
+
+  private RejectedExecutionHandler buildRejectedHandler(AsyncRejectedStrategy strategy) {
+    if (strategy == AsyncRejectedStrategy.DEAD_LETTER) {
+      return new DeadLetterRejectedExecutionHandler(deadLetterProcessRepository);
+    }
+    return (task, executor) ->
+        log.warn(AppLogMessage.message("#AsyncExecutor - task rejected and dropped [{}]", task.getClass().getSimpleName()));
   }
 }

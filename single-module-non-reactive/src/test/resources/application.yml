@@ -76,13 +76,7 @@ apps:
         queue-capacity: 10
         keep-alive-seconds: 30
         thread-name-prefix: async-
-    retry-rejected-task:
-      core-pool-size: 5
-      max-pool-size: 10
-      queue-capacity: 50
-      keep-alive-seconds: 60
-      thread-name-prefix: reject-
-    max-retry-rejected-task: 100
+        rejected-task-strategy: LOG_AND_DROP
   log:
     enable-trace-log: true
     enable-metric-log: true

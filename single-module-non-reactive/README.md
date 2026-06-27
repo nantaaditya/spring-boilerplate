@@ -88,47 +88,11 @@ DELETE /internal-api/dead_letter_process?days=30
 
 ```shell
 curl -XPOST -H "Content-type: application/json" \
-  -d '{"processType":"type","processName":"name","size":30}' \
+  -d '{"processType":"ORDER","processName":"placeOrder","size":30}' \
   'http://localhost:8080/internal-api/dead_letter_process/_retry'
 ```
 
-Before using this endpoint, create a bean that extends `AbstractRetryProcessorService`:
-
-```java
-@Component
-public class ExampleRetryProcessor extends AbstractRetryProcessorService {
-
-  public ExampleRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository,
-      ObjectMapper objectMapper) {
-    super(deadLetterProcessRepository, objectMapper);
-  }
-
-  @Override
-  public String getProcessType() {
-    return "type";
-  }
-
-  @Override
-  public String getProcessName() {
-    return "name";
-  }
-
-  @Override
-  public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
-    return true;
-  }
-
-  @Override
-  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
-    // do something on success
-  }
-
-  @Override
-  public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
-    // do something on error
-  }
-}
-```
+Records enter the `dead_letter_process` table automatically — either from exhausted retries or from rejected async tasks. See the [Dead letter process lifecycle](#dead-letter-process-lifecycle) section for how both paths work and how to register a replay handler.
 
 ### Masking sensitive PII data on log
 
@@ -292,6 +256,149 @@ Auto-configures a thread pool for asynchronous processing. Define `apps.async.co
 | `queue-capacity` | `int` | `50` | Capacity of the BlockingQueue |
 | `keep-alive-seconds` | `int` | `60` | Keep-alive time for idle threads |
 | `thread-name-prefix` | `String` | `async-` | Prefix for thread names |
+| `rejected-task-strategy` | `AsyncRejectedStrategy` | `LOG_AND_DROP` | What happens when the queue is full and a task is rejected. `LOG_AND_DROP` logs a warning and discards the task. `DEAD_LETTER` saves the task to the `dead_letter_process` table for manual review and replay. |
+
+Tasks that use `DEAD_LETTER` strategy should implement `DeadLetterCapable` to supply `processType`, `processName`, and `payload` for a replayable record. Tasks that do not implement it produce a minimal audit record (`processType = ASYNC_REJECTED`) that is not replayable via the retry API.
+
+To make an async task replayable, implement both `Runnable` and `DeadLetterCapable`:
+
+```java
+public class PlaceOrderTask implements Runnable, DeadLetterCapable {
+
+  private final String orderId;
+  private final byte[] serializedPayload; // pre-serialized request bytes
+
+  public PlaceOrderTask(String orderId, byte[] serializedPayload) {
+    this.orderId = orderId;
+    this.serializedPayload = serializedPayload;
+  }
+
+  @Override
+  public void run() {
+    // business logic
+  }
+
+  @Override
+  public String getProcessType() {
+    return "ORDER";
+  }
+
+  @Override
+  public String getProcessName() {
+    return "placeOrder";
+  }
+
+  @Override
+  public byte[] getPayload() {
+    return serializedPayload;
+  }
+}
+```
+
+When the executor rejects this task, a `dead_letter_process` record is created with `processType = ORDER`, `processName = placeOrder`, and the serialized payload — ready for manual replay via the internal API. See the [Dead letter process lifecycle](#dead-letter-process-lifecycle) section for how to set up the replay handler.
+
+### Dead letter process lifecycle {#dead-letter-process-lifecycle}
+
+Records enter the `dead_letter_process` table from two paths:
+
+#### Path 1 — Exhausted retry
+
+When `RetryHelper.execute()` runs out of attempts, `RetryTemplateListener` automatically saves the failed context to `dead_letter_process`. No extra setup is required — any call to `retryHelper.execute(...)` participates in this automatically.
+
+```
+retryHelper.execute("default", "ORDER", "placeOrder", action, fallback, request)
+    └── attempt 1 → fails
+    └── attempt 2 → fails
+    └── attempt 3 → fails (max-attempt reached)
+        └── RetryTemplateListener saves to dead_letter_process
+            processType  = "ORDER"
+            processName  = "placeOrder"
+            status       = "NEW"
+            payload      = serialized request
+```
+
+#### Path 2 — Async executor rejection
+
+When an async thread pool's queue is full and `rejected-task-strategy: DEAD_LETTER` is configured, the rejected task is saved to `dead_letter_process` by `DeadLetterRejectedExecutionHandler`.
+
+```yaml
+apps:
+  async:
+    configurations:
+      order:
+        queue-capacity: 100
+        rejected-task-strategy: DEAD_LETTER
+```
+
+```
+@Async("orderAsyncTaskExecutor")
+public void processOrder(PlaceOrderTask task) { ... }
+
+// queue full → task rejected
+//   └── DeadLetterRejectedExecutionHandler.rejectedExecution(task, executor)
+//       └── task instanceof DeadLetterCapable → saves full metadata
+//           processType  = "ORDER"
+//           processName  = "placeOrder"
+//           status       = "NEW"
+//           payload      = task.getPayload()
+```
+
+#### Replaying dead letter records
+
+Once records are in the table (from either path), replay them via the API:
+
+```shell
+curl -XPOST -H "Content-type: application/json" \
+  -d '{"processType":"ORDER","processName":"placeOrder","size":30}' \
+  'http://localhost:8080/internal-api/dead_letter_process/_retry'
+```
+
+For the API to know how to replay a record, register a bean that extends `AbstractRetryProcessorService` matching the same `processType` and `processName`:
+
+```java
+@Component
+public class PlaceOrderRetryProcessor extends AbstractRetryProcessorService {
+
+  private final OrderService orderService;
+
+  public PlaceOrderRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository,
+      ObjectMapper objectMapper, OrderService orderService) {
+    super(deadLetterProcessRepository, objectMapper);
+    this.orderService = orderService;
+  }
+
+  @Override
+  public String getProcessType() {
+    return "ORDER";
+  }
+
+  @Override
+  public String getProcessName() {
+    return "placeOrder";
+  }
+
+  @Override
+  public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
+    // optional filter — e.g. skip records older than 24 hours
+    return deadLetterProcess.getRetryCount() < deadLetterProcess.getMaxRetry();
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
+    // called when replay succeeds — update downstream state if needed
+  }
+
+  @Override
+  public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
+    // called when replay fails — alert, notify, or escalate
+  }
+}
+```
+
+The `update()` method on `AbstractRetryProcessorService` handles status transitions automatically:
+- Success → status `SUCCESS`
+- Failure, retries remaining → status `FAILED`
+- Failure, max retries reached → status `EXHAUSTED`
 
 ### External client auto configuration
 

@@ -144,17 +144,7 @@ Before deploying to production, verify:
 | `ASYNC_DEFAULT_QUEUE` | Task queue capacity for the default async executor | Integer | `50` | No | | | | |
 | `ASYNC_DEFAULT_KEEP_ALIVE` | Idle thread keep-alive time (seconds) for the default async executor | Integer | `60` | No | | | | |
 | `ASYNC_DEFAULT_THREAD_NAME` | Thread name prefix for the default async executor | String | `async-` | No | | | | |
-
-### Retry-Rejected Task Pool (`apps.async.retry-rejected-task`)
-
-| Variable | Description | Type | Default | Required | Sensitivity | Nonprod Value | Prod Value | Notes |
-|----------|-------------|------|---------|----------|-------------|---------------|------------|-------|
-| `REJECT_DEFAULT_CORE_POOL_SIZE` | Core thread count for the rejected-task retry executor | Integer | `5` | No | | | | |
-| `REJECT_DEFAULT_MAX_POOL_SIZE` | Maximum thread count for the rejected-task retry executor | Integer | `10` | No | | | | |
-| `REJECT_DEFAULT_QUEUE` | Task queue capacity for the rejected-task retry executor | Integer | `50` | No | | | | |
-| `REJECT_DEFAULT_KEEP_ALIVE` | Idle thread keep-alive time (seconds) for the rejected-task retry executor | Integer | `60` | No | | | | |
-| `REJECT_DEFAULT_THREAD_NAME` | Thread name prefix for the rejected-task retry executor | String | `reject-` | No | | | | |
-| `MAX_REJECT_TASK` | Maximum number of rejected tasks accepted before discarding | Integer | `100` | No | | | | |
+| `ASYNC_DEFAULT_REJECTED_STRATEGY` | Behavior when the async queue is full and a task is rejected | String | `LOG_AND_DROP` | No | | | | Values: `LOG_AND_DROP` (log and discard the task), `DEAD_LETTER` (save to `dead_letter_process` for manual replay). Tasks must implement `DeadLetterCapable` for full replay metadata; otherwise a minimal audit record is saved. |
 
 ---
 

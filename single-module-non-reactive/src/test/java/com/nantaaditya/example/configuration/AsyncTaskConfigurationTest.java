@@ -22,9 +22,8 @@ class AsyncTaskConfigurationTest {
   private AsyncTaskProperties asyncTaskProperties;
 
   @Test
-  void onStart_null() {
-    when(asyncTaskProperties.configurations())
-        .thenReturn(null);
+  void onStart_nullConfigurations_logsWarningAndReturns() {
+    when(asyncTaskProperties.configurations()).thenReturn(null);
 
     asyncTaskConfiguration.onStart();
 
@@ -32,9 +31,8 @@ class AsyncTaskConfigurationTest {
   }
 
   @Test
-  void onStart_empty() {
-    when(asyncTaskProperties.configurations())
-        .thenReturn(Collections.emptyMap());
+  void onStart_emptyConfigurations_logsWarningAndReturns() {
+    when(asyncTaskProperties.configurations()).thenReturn(Collections.emptyMap());
 
     asyncTaskConfiguration.onStart();
 

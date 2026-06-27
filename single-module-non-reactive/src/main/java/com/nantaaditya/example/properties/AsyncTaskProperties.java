@@ -6,9 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("apps.async")
 public record AsyncTaskProperties(
-    Map<String, AsyncConfiguration> configurations,
-    AsyncConfiguration retryRejectedTask,
-    int maxRetryRejectedTask
+    Map<String, AsyncConfiguration> configurations
 ) {
 
   public AsyncConfiguration getConfiguration(String name) {
