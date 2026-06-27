@@ -1,10 +1,6 @@
 package com.nantaaditya.example.helper;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -15,6 +11,9 @@ import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.AbstractStringLayout;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Plugin(
     name = "TextLogLayout",
@@ -24,11 +23,11 @@ import org.apache.logging.log4j.core.layout.AbstractStringLayout;
 )
 public class TextLogLayout extends AbstractStringLayout {
 
-  private final ObjectMapper mapper = new ObjectMapper()
-      .registerModule(new JavaTimeModule())
-      .setSerializationInclusion(Include.NON_NULL)
-      .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-      .disable(MapperFeature.USE_ANNOTATIONS);
+  private final ObjectMapper objectMapper = JsonMapper.builder()
+      .changeDefaultPropertyInclusion(inclusion -> inclusion.withValueInclusion(Include.NON_NULL))
+      .enable(DeserializationFeature.USE_NULL_FOR_MISSING_REFERENCE_VALUES)
+      .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+      .build();
   private final String application;
 
   protected TextLogLayout(String application) {
@@ -60,7 +59,7 @@ public class TextLogLayout extends AbstractStringLayout {
 
     if (event.getMessage() instanceof AppLogMessage a) {
       try {
-        sb.append(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(a));
+        sb.append(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(a));
       } catch (Exception e) {
         sb.append(a.getFormattedMessage());
       }

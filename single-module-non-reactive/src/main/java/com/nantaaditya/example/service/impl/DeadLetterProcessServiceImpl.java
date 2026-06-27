@@ -1,8 +1,5 @@
 package com.nantaaditya.example.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.RestSender;
@@ -30,6 +27,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 @Service
@@ -156,7 +156,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
       headers.add("x-retry-time",
           DateTimeHelper.getDateInFormat(ZonedDateTime.now(), DateTimeHelper.ISO_8601_GMT7_FORMAT));
       return new HttpHeaders(headers);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error(AppLogMessage.message("#DeadLetterProcess - failed generate header").error(e));
       return new HttpHeaders();
     }

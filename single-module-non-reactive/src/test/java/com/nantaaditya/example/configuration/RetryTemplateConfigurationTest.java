@@ -6,6 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.nantaaditya.example.properties.RetryProperties;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +23,12 @@ class RetryTemplateConfigurationTest {
 
   @Mock
   private RetryProperties retryProperties;
+
+  @Mock
+  private ObservationRegistry observationRegistry;
+
+  @Mock
+  private MeterRegistry meterRegistry;
 
   @Test
   void retryTemplateHelperFactory_null() {

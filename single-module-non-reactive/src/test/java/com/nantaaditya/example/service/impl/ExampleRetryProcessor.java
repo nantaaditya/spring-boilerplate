@@ -1,11 +1,11 @@
 package com.nantaaditya.example.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 public class ExampleRetryProcessor extends AbstractRetryProcessorService {

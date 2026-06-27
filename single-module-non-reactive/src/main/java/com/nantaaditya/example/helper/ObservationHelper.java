@@ -1,6 +1,6 @@
 package com.nantaaditya.example.helper;
 
-import com.nantaaditya.example.model.constant.FeatureConstant;
+import com.nantaaditya.example.model.constant.AppsFeatureConstant;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ContextDTO;
@@ -28,7 +28,7 @@ public class ObservationHelper {
   public Context createApiContext(ContextDTO contextDTO) {
     Context observationContext = new Context();
 
-    FeatureConstant feature = FeatureConstant.get(contextDTO.method(), contextDTO.path());
+    AppsFeatureConstant feature = AppsFeatureConstant.get(contextDTO.method(), contextDTO.path());
     if (feature != null) {
       observationContext.addLowCardinalityKeyValue(KeyValue.of("feature", feature.name()));
     } else {

@@ -7,7 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.util.AntPathMatcher;
 
 @Getter
-public enum FeatureConstant {
+public enum AppsFeatureConstant {
 
   GET_EXAMPLE(HttpMethod.GET, "/api/example"),
   POST_EXAMPLE(HttpMethod.POST, "/api/example");
@@ -17,13 +17,13 @@ public enum FeatureConstant {
 
   private static final AntPathMatcher matcher = new AntPathMatcher();
 
-  FeatureConstant(HttpMethod method, String path) {
+  AppsFeatureConstant(HttpMethod method, String path) {
     this.method = method;
     this.path = path;
   }
 
-  public static FeatureConstant get(String method, String path) {
-    Predicate<FeatureConstant> isMatch = (FeatureConstant item)
+  public static AppsFeatureConstant get(String method, String path) {
+    Predicate<AppsFeatureConstant> isMatch = (AppsFeatureConstant item)
       -> item.getMethod() == HttpMethod.valueOf(method) && matcher.match(item.getPath(), path);
 
     return Stream.of(values())

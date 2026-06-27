@@ -100,7 +100,7 @@ apps:
     enable-api-log: ${ENABLE_API_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
-    log-format: ${LOG_FORMAT:TEXT}
+    log-format: ${LOG_FORMAT:JSON}
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
   retry.configurations:
@@ -119,11 +119,11 @@ apps:
           connect-time-out: ${MOCK_CLIENT_CONNECT_TIMEOUT:2000}
           read-time-out: ${MOCK_CLIENT_READ_TIMEOUT:2000}
           connect-request-time-out: ${MOCK_CLIENT_CONNECT_REQUEST_TIMEOUT:2000}
-        pooling:
-          max-total: ${MOCK_CLIENT_MAX_IDLE_CONNECTIONS:10}
-          max-per-route: ${MOCK_CLIENT_MAX_IDLE_CONNECTION_PER_ROUTE:5}
         enable-log: true
         disable-ssl-verification: true
+    pooling:
+      max-total: ${CLIENT_MAX_IDLE_CONNECTIONS:10}
+      max-per-route: ${CLIENT_MAX_IDLE_CONNECTION_PER_ROUTE:5}
     network-configuration:
       socket-time-out: ${SOCKET_TIMEOUT:10000}
       time-to-live: ${TIME_TO_LIVE:60000}

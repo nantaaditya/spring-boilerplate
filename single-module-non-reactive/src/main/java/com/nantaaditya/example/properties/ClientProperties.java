@@ -2,6 +2,7 @@ package com.nantaaditya.example.properties;
 
 import com.nantaaditya.example.properties.embedded.ClientConfiguration;
 import com.nantaaditya.example.properties.embedded.ClientNetworkConfiguration;
+import com.nantaaditya.example.properties.embedded.ClientPoolingConfiguration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(value = "apps.client")
 public record ClientProperties(
     Map<String, ClientConfiguration> configurations,
+    ClientPoolingConfiguration pooling,
     ClientNetworkConfiguration networkConfiguration
 ) {
 

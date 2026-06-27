@@ -8,8 +8,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.AppLogMessage;
@@ -24,6 +22,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 @ExtendWith(MockitoExtension.class)

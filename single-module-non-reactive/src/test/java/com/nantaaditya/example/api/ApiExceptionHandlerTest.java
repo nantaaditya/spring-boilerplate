@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.response.Response;
@@ -24,6 +22,8 @@ import org.springframework.validation.method.MethodValidationResult;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class ApiExceptionHandlerTest {
@@ -41,7 +41,7 @@ class ApiExceptionHandlerTest {
   private ObservationHelper observationHelper;
 
   @BeforeEach
-  void setUp() throws JsonProcessingException {
+  void setUp() throws JacksonException {
     when(objectMapper.writeValueAsString(any()))
         .thenReturn("{}");
   }

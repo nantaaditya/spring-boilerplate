@@ -1,13 +1,10 @@
 package com.nantaaditya.example.service.impl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +13,8 @@ import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 public abstract class AbstractRetryProcessorService {
@@ -78,7 +77,7 @@ public abstract class AbstractRetryProcessorService {
           throwable != null ? throwable.getMessage() : null
       ));
       deadLetterProcess.setRetryHistories(objectMapper.writeValueAsBytes(retryHistories));
-    } catch (IOException e) {
+    } catch (Exception e) {
       log.error(AppLogMessage.message("#Retry - failed to update retry histories {}", deadLetterProcess.getId()).error(e));
     }
   }

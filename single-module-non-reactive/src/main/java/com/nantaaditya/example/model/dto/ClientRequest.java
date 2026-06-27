@@ -1,12 +1,12 @@
-package com.nantaaditya.example.model.dto;
+package  com.nantaaditya.example.model.dto;
 
 import java.beans.Transient;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.retry.RetryContext;
 import org.springframework.util.MultiValueMap;
 
 public record ClientRequest<S, T>(
@@ -16,7 +16,7 @@ public record ClientRequest<S, T>(
     HttpHeaders headers,
     S request,
     ParameterizedTypeReference<T> responseType,
-    RetryContext retryContext,
+    Map<String, Object> retryContext,
     String processName
 ) {
 

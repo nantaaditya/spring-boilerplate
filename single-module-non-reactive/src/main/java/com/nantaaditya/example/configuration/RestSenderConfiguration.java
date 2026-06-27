@@ -1,6 +1,5 @@
 package com.nantaaditya.example.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.factory.RestSenderFactory;
 import com.nantaaditya.example.helper.RestClientHelper;
 import com.nantaaditya.example.helper.RestSender;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @AutoConfigureAfter(value = {RestClientBeanConfiguration.class, RetryTemplateConfiguration.class})

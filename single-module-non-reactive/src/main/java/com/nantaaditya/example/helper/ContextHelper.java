@@ -1,9 +1,5 @@
 package com.nantaaditya.example.helper;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nantaaditya.example.model.constant.ContextConstant;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ContextDTO;
@@ -11,6 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.UnaryOperator;
 import lombok.extern.log4j.Log4j2;
 import org.slf4j.MDC;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 public class ContextHelper {
@@ -22,16 +21,12 @@ public class ContextHelper {
 
   private ContextHelper() {}
 
-  static {
-    mapper.registerModule(new JavaTimeModule());
-  }
-
   public static void put(ContextDTO contextDTO) {
     try {
       String json = mapper.writeValueAsString(contextDTO);
       MDC.put(ContextConstant.REQUEST_ID.getValue(), contextDTO.requestId());
       MDC.put(CONTEXT_KEY, json);
-    } catch (JsonProcessingException ex) {
+    } catch (JacksonException ex) {
       log.error(AppLogMessage.message("#MDC - failed to save {}", CONTEXT_KEY).error(ex));
     }
   }
@@ -54,7 +49,7 @@ public class ContextHelper {
       if (json == null) return null;
 
       return mapper.readValue(json, new TypeReference<ContextDTO>() {});
-    } catch (JsonProcessingException ex) {
+    } catch (JacksonException ex) {
       log.error(AppLogMessage.message("#MDC - failed to get {}", CONTEXT_KEY).error(ex));
       return null;
     }
@@ -74,6 +69,10 @@ public class ContextHelper {
       case RESPONSE_TIME -> contextDTO.responseTime();
       default -> null;
     };
+  }
+
+  public static String getRequestId() {
+    return get(ContextConstant.REQUEST_ID);
   }
 
   public static byte[] getAdditionalData() {

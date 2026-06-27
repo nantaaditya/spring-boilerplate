@@ -107,11 +107,11 @@ apps:
           connectTimeOut: 2000
           readTimeOut: 2000
           connectRequestTimeOut: 2000
-        pooling:
-          maxTotal: 10
-          maxPerRoute: 5
         enable-log: true
         disable-ssl-verification: true
+    pooling:
+      maxTotal: 10
+      maxPerRoute: 5
     network-configuration:
       socket-time-out: 10000
       time-to-live: 60000

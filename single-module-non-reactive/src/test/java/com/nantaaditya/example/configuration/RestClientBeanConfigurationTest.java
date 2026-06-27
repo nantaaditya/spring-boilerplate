@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.support.GenericApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,8 +33,6 @@ class RestClientBeanConfigurationTest {
   private ObservationRegistry observationRegistry;
   @Mock
   private GenericApplicationContext applicationContext;
-  @Mock
-  private RestTemplateBuilder builder;
 
   private ClientConfiguration clientConfiguration;
 
@@ -43,7 +40,7 @@ class RestClientBeanConfigurationTest {
   void restClientHelperFactory_null() {
     when(clientProperties.configurations())
         .thenReturn(null);
-    assertNotNull(restClientBeanConfiguration.restClientHelperFactory(builder));
+    assertNotNull(restClientBeanConfiguration.restClientHelperFactory());
     verify(clientProperties).configurations();
   }
 
@@ -51,7 +48,7 @@ class RestClientBeanConfigurationTest {
   void restClientHelperFactory_empty() {
     when(clientProperties.configurations())
         .thenReturn(Collections.emptyMap());
-    assertNotNull(restClientBeanConfiguration.restClientHelperFactory(builder));
+    assertNotNull(restClientBeanConfiguration.restClientHelperFactory());
     verify(clientProperties, atLeast(1)).configurations();
   }
 }

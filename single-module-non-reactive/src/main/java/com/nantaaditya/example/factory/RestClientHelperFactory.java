@@ -8,12 +8,12 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 @Setter
 public class RestClientHelperFactory implements FactoryBean<RestClientHelper> {
 
-  private Map<String, RestTemplate> restClients = new HashMap<>();
+  private Map<String, RestClient> restClients = new HashMap<>();
 
   @Override
   public RestClientHelper getObject() throws Exception {
@@ -29,10 +29,10 @@ public class RestClientHelperFactory implements FactoryBean<RestClientHelper> {
   private static class RestClientHelperImpl implements RestClientHelper {
     private static final String POSTFIX_BEAN_NAME = "RestClient";
 
-    private Map<String, RestTemplate> restClients = new HashMap<>();
+    private Map<String, RestClient> restClients = new HashMap<>();
 
     @Override
-    public RestTemplate getRestClient(String clientName) {
+    public RestClient getRestClient(String clientName) {
       return restClients.get(clientName + POSTFIX_BEAN_NAME);
     }
 

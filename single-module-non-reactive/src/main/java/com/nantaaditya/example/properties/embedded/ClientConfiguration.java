@@ -8,7 +8,6 @@ public record ClientConfiguration(
     ClientTimeOutConfiguration timeOut,
     ClientProxyConfiguration proxy,
     ClientCredentialConfiguration credential,
-    ClientPoolingConfiguration pooling,
     boolean enableLog,
     boolean disableSslVerification
 ) {

@@ -1,7 +1,5 @@
 package com.nantaaditya.example.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.helper.ContextHelper;
 import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.helper.ObservationWrapper;
@@ -39,6 +37,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 @RestControllerAdvice
@@ -160,7 +160,7 @@ public class ApiExceptionHandler {
   private String getErrors(Map<String, List<String>> violations) {
     try {
       return objectMapper.writeValueAsString(violations);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error(AppLogMessage.message("#ApiError - failed convert errors").error(e));
       return null;
     }

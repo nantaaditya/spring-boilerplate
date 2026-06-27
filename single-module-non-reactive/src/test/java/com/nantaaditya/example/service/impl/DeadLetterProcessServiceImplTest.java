@@ -11,7 +11,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RestSenderHelper;
@@ -39,6 +38,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 @ExtendWith(MockitoExtension.class)

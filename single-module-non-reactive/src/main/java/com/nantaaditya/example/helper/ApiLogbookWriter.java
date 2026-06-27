@@ -1,7 +1,5 @@
 package com.nantaaditya.example.helper;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.JsonLogHttpRequest;
 import com.nantaaditya.example.model.dto.JsonLogHttpResponse;
@@ -15,6 +13,8 @@ import org.springframework.util.MultiValueMap;
 import org.zalando.logbook.Correlation;
 import org.zalando.logbook.HttpLogWriter;
 import org.zalando.logbook.Precorrelation;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Log4j2
 public class ApiLogbookWriter implements HttpLogWriter {

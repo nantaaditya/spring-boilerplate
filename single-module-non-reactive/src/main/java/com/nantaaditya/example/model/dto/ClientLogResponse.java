@@ -46,11 +46,6 @@ public class ClientLogResponse implements ClientHttpResponse {
 	}
 
 	@Override
-	public int getRawStatusCode() throws IOException {
-		return this.parent.getRawStatusCode();
-	}
-
-	@Override
 	public String getStatusText() throws IOException {
 		return this.parent.getStatusText();
 	}

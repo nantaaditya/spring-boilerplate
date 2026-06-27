@@ -6,7 +6,7 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryTemplate;
 
 @Setter
 public class RetryTemplateHelperFactory implements FactoryBean<RetryTemplateHelper> {

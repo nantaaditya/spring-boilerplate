@@ -9,13 +9,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.springframework.retry.RetryContext;
 
 @Data
 @SuperBuilder
@@ -48,20 +48,21 @@ public class DeadLetterProcess extends BaseEntity {
   private String lastError;
   private byte[] retryHistories;
 
-  public static DeadLetterProcess create(RetryContext retryContext, byte[] request, byte[] retryHistories) {
+  public static DeadLetterProcess create(Map<String, Object> retryContext, byte[] request, byte[] retryHistories,
+      Throwable ex) {
     return DeadLetterProcess.builder()
-        .processType((String) retryContext.getAttribute(RetryConstant.PROCESS_TYPE.getName()))
-        .processName((String) retryContext.getAttribute(RetryConstant.PROCESS_NAME.getName()))
-        .idempotencyKey((String) retryContext.getAttribute(RetryConstant.REQUEST_ID.getName()))
-        .clientName((String) retryContext.getAttribute(RetryConstant.CLIENT_NAME.getName()))
-        .method((String) retryContext.getAttribute(RetryConstant.METHOD.getName()))
-        .path((String) retryContext.getAttribute(RetryConstant.PATH.getName()))
-        .headers((String) retryContext.getAttribute(RetryConstant.HEADERS.getName()))
+        .processType((String) retryContext.get(RetryConstant.PROCESS_TYPE.getName()))
+        .processName((String) retryContext.get(RetryConstant.PROCESS_NAME.getName()))
+        .idempotencyKey((String) retryContext.get(RetryConstant.REQUEST_ID.getName()))
+        .clientName((String) retryContext.get(RetryConstant.CLIENT_NAME.getName()))
+        .method((String) retryContext.get(RetryConstant.METHOD.getName()))
+        .path((String) retryContext.get(RetryConstant.PATH.getName()))
+        .headers((String) retryContext.get(RetryConstant.HEADERS.getName()))
         .payload(request)
         .retryCount(0)
-        .maxRetry((int) retryContext.getAttribute(RetryConstant.MAX_RETRY.getName()))
+        .maxRetry(retryContext.get(RetryConstant.MAX_RETRY.getName()) instanceof Integer i ? i : 0)
         .status(RetryStatus.NEW.name())
-        .lastError(retryContext.getLastThrowable().getMessage())
+        .lastError(ex.getMessage())
         .retryHistories(retryHistories)
         .build();
   }

@@ -1,9 +1,9 @@
 package com.nantaaditya.example.helper;
 
 import java.util.Set;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 public interface RestClientHelper {
-  RestTemplate getRestClient(String clientName);
+  RestClient getRestClient(String clientName);
   Set<String> getClientNames();
 }
