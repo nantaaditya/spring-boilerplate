@@ -5,6 +5,7 @@ import lombok.Getter;
 public enum ResponseCode {
   SUCCESS("000", "success"),
   BAD_REQUEST("400", "bad request"),
+  NOT_FOUND("404", "not found"),
   INTERNAL_ERROR("500", "internal error"),
   INVALID_PARAMS("900", "invalid parameters");
 

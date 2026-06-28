@@ -15,7 +15,8 @@ An example Spring Boot boilerplate project using a single module, non-reactive s
 - Endpoint to run schema migration manually
 - Endpoint to remove obsolete `event_log`
 - Endpoint to remove obsolete `dead_letter_process`
-- Endpoint to retry `dead_letter_process`
+- Endpoint to batch retry `dead_letter_process` by processType/processName
+- Endpoint to retry a single `dead_letter_process` record by id
 - Masking sensitive PII data on log
 - Response time tracing on each endpoint call on log
 - Structured log & segregate log for apps, metrics, response time, and error
@@ -86,10 +87,18 @@ DELETE /internal-api/dead_letter_process?days=30
 
 ### Endpoint to retry dead_letter_process
 
+**Batch retry** — retries all `NEW` or `FAILED` records matching the given `processType` and `processName`, up to `size` records:
+
 ```shell
 curl -XPOST -H "Content-type: application/json" \
   -d '{"processType":"ORDER","processName":"placeOrder","size":30}' \
   'http://localhost:8080/internal-api/dead_letter_process/_retry'
+```
+
+**Single-record retry** — retries one specific record by its `id`. Unlike the batch endpoint, this also allows force-retrying records stuck in `RETRYING` status (e.g. after a crashed run). `SUCCESS` and `EXHAUSTED` records are still skipped. Returns 404 if the id does not exist.
+
+```shell
+curl -XPOST 'http://localhost:8080/internal-api/dead_letter_process/42/_retry'
 ```
 
 Records enter the `dead_letter_process` table automatically — either from exhausted retries or from rejected async tasks. See the [Dead letter process lifecycle](#dead-letter-process-lifecycle) section for how both paths work and how to register a replay handler.

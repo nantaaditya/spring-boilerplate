@@ -1,6 +1,7 @@
 package com.nantaaditya.example.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -26,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -376,6 +379,96 @@ class DeadLetterProcessServiceImplTest {
     verify(deadLetterProcessRepository).saveAll(anyList());
     verify(retryProcessorHelper).getProcessor(anyString(), anyString());
     verify(deadLetterProcessRepository).save(any(DeadLetterProcess.class));
+  }
+
+  @Test
+  void retryById_notFound() {
+    when(deadLetterProcessRepository.findById(99L)).thenReturn(Optional.empty());
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+    );
+
+    assertThrows(NoSuchElementException.class, () -> deadLetterProcessService.retryById(99L));
+    verify(deadLetterProcessRepository).findById(99L);
+  }
+
+  @Test
+  void retryById_terminalStatus() throws IOException {
+    RetryHistoryContext retryHistory = new RetryHistoryContext(0, "response", "error");
+    List<RetryHistoryContext> retryHistories = new LinkedList<>();
+    retryHistories.add(retryHistory);
+
+    DeadLetterProcess deadLetterProcess = DeadLetterProcess.builder()
+        .processType("type").processName("name")
+        .retryCount(1).maxRetry(3)
+        .status(RetryStatus.SUCCESS.name())
+        .retryHistories(objectMapper.writeValueAsBytes(retryHistories))
+        .build();
+    when(deadLetterProcessRepository.findById(1L)).thenReturn(Optional.of(deadLetterProcess));
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+    );
+    deadLetterProcessService.retryById(1L);
+
+    verify(deadLetterProcessRepository).findById(1L);
+  }
+
+  @Test
+  void retryById_processorNotFound() throws IOException {
+    RetryHistoryContext retryHistory = new RetryHistoryContext(0, "response", "error");
+    List<RetryHistoryContext> retryHistories = new LinkedList<>();
+    retryHistories.add(retryHistory);
+
+    DeadLetterProcess deadLetterProcess = DeadLetterProcess.builder()
+        .processType("type").processName("name")
+        .retryCount(0).maxRetry(3)
+        .status(RetryStatus.NEW.name())
+        .retryHistories(objectMapper.writeValueAsBytes(retryHistories))
+        .build();
+    when(deadLetterProcessRepository.findById(1L)).thenReturn(Optional.of(deadLetterProcess));
+    when(retryProcessorHelper.getProcessor(anyString(), anyString())).thenReturn(null);
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+    );
+    deadLetterProcessService.retryById(1L);
+
+    verify(deadLetterProcessRepository).findById(1L);
+    verify(retryProcessorHelper).getProcessor("type", "name");
+  }
+
+  @Test
+  void retryById_success() throws IOException {
+    RetryHistoryContext retryHistory = new RetryHistoryContext(0, "response", "error");
+    List<RetryHistoryContext> retryHistories = new LinkedList<>();
+    retryHistories.add(retryHistory);
+
+    DeadLetterProcess deadLetterProcess = DeadLetterProcess.builder()
+        .processType("type").processName("name")
+        .retryCount(0).maxRetry(3)
+        .status(RetryStatus.NEW.name())
+        .retryHistories(objectMapper.writeValueAsBytes(retryHistories))
+        .build();
+    when(deadLetterProcessRepository.findById(1L)).thenReturn(Optional.of(deadLetterProcess));
+    when(deadLetterProcessRepository.save(any(DeadLetterProcess.class)))
+        .thenAnswer(answer -> answer.getArguments()[0]);
+    when(deadLetterProcessRepository.saveAll(anyList()))
+        .thenAnswer(answer -> answer.getArgument(0));
+    when(retryProcessorHelper.getProcessor(anyString(), anyString()))
+        .thenReturn(new ExampleProcessor(deadLetterProcessRepository, objectMapper, false));
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+    );
+    deadLetterProcessService.retryById(1L);
+
+    ArgumentCaptor<DeadLetterProcess> captor = ArgumentCaptor.forClass(DeadLetterProcess.class);
+    verify(deadLetterProcessRepository).findById(1L);
+    verify(deadLetterProcessRepository).saveAll(anyList());
+    verify(deadLetterProcessRepository).save(captor.capture());
+    assertEquals(RetryStatus.SUCCESS.name(), captor.getValue().getStatus());
   }
 
   @Log4j2

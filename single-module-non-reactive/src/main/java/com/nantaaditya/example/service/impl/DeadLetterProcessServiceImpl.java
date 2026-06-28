@@ -13,6 +13,7 @@ import com.nantaaditya.example.service.internal.DeadLetterProcessService;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -35,6 +36,10 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 @RequiredArgsConstructor
 public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
+
+  private static final Set<String> TERMINAL_STATUSES = Set.of(
+      RetryStatus.SUCCESS.name(), RetryStatus.EXHAUSTED.name()
+  );
 
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final RetryProcessorHelper retryProcessorHelper;
@@ -183,6 +188,37 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
       log.error(AppLogMessage.message("#DeadLetterProcess - failed generate header").error(e));
       return new HttpHeaders();
     }
+  }
+
+  @Override
+  @Async("defaultAsyncTaskExecutor")
+  public void retryById(long id) {
+    DeadLetterProcess deadLetterProcess = deadLetterProcessRepository.findById(id)
+        .orElseThrow(() -> new NoSuchElementException("dead_letter_process not found: id=" + id));
+
+    if (TERMINAL_STATUSES.contains(deadLetterProcess.getStatus())) {
+      log.warn(AppLogMessage.message("#DeadLetterProcess - id {} already in terminal status {}, skipping",
+          id, deadLetterProcess.getStatus()));
+      return;
+    }
+
+    if (deadLetterProcess.getRetryCount() >= deadLetterProcess.getMaxRetry()) {
+      log.warn(AppLogMessage.message("#DeadLetterProcess - id {} retryCount {} >= maxRetry {}, skipping",
+          id, deadLetterProcess.getRetryCount(), deadLetterProcess.getMaxRetry()));
+      return;
+    }
+
+    AbstractRetryProcessorService processor = retryProcessorHelper.getProcessor(
+        deadLetterProcess.getProcessType(), deadLetterProcess.getProcessName());
+    if (processor == null) {
+      log.warn(AppLogMessage.message(
+          "#DeadLetterProcess - no retry processor handler found with {} - {}",
+          deadLetterProcess.getProcessType(), deadLetterProcess.getProcessName()));
+      return;
+    }
+
+    updateInProgress(List.of(deadLetterProcess));
+    retry(processor, deadLetterProcess);
   }
 
   private void updateInProgress(List<DeadLetterProcess> deadLetterProcesses) {

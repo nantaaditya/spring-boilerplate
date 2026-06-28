@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -70,6 +71,17 @@ public class ApiExceptionHandler {
     return toError(exception, error -> {
       Map<String, List<String>> errors = Map.of("endpoint", List.of("not available"));
       Response<Object> response = Response.failed(ResponseCode.BAD_REQUEST, errors);
+      return Pair.of(errors, response);
+    });
+  }
+
+  @ResponseBody
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  @ExceptionHandler(NoSuchElementException.class)
+  public Response<Object> noSuchElementException(NoSuchElementException exception) {
+    return toError(exception, error -> {
+      Map<String, List<String>> errors = Map.of("id", List.of("NotFound"));
+      Response<Object> response = Response.failed(ResponseCode.NOT_FOUND, errors);
       return Pair.of(errors, response);
     });
   }

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,15 @@ public class DeadLetterProcessController {
   )
   public Response<Boolean> retry(@RequestBody @Valid RetryDeadLetterProcessRequest request) {
     deadLetterProcessService.retry(request);
+    return Response.success(true);
+  }
+
+  @PostMapping(
+      value = "/{id}/_retry",
+      produces = MediaType.APPLICATION_JSON_VALUE
+  )
+  public Response<Boolean> retryById(@PathVariable long id) {
+    deadLetterProcessService.retryById(id);
     return Response.success(true);
   }
 }

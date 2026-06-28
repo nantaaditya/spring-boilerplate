@@ -47,4 +47,15 @@ class DeadLetterProcessControllerTest {
 
     verify(deadLetterProcessService).retry(request);
   }
+
+  @Test
+  void retryById() {
+    doNothing().when(deadLetterProcessService).retryById(1L);
+
+    Response<Boolean> result = deadLetterProcessController.retryById(1L);
+    assertNotNull(result);
+    assertTrue(result.getData());
+
+    verify(deadLetterProcessService).retryById(1L);
+  }
 }
