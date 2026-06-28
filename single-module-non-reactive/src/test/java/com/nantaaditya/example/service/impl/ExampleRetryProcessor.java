@@ -1,13 +1,10 @@
 package com.nantaaditya.example.service.impl;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
-import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
 import tools.jackson.databind.ObjectMapper;
 
-@Log4j2
 public class ExampleRetryProcessor extends AbstractRetryProcessorService {
 
   public ExampleRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository, ObjectMapper objectMapper) {
@@ -30,13 +27,31 @@ public class ExampleRetryProcessor extends AbstractRetryProcessorService {
   }
 
   @Override
-  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
-    log.info(AppLogMessage.message("success"));
+  public <T> boolean isSuccess(T response) {
+    if (response instanceof ResponseEntity<?> re) {
+      return re.getStatusCode().is2xxSuccessful();
+    }
+    return Boolean.TRUE.equals(response);
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, T response) {
   }
 
   @Override
   public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
-    log.error(AppLogMessage.message("error").error(throwable));
+  }
+
+  @Override
+  public <T> String toRetryHistoryResponse(T response) {
+    if (response instanceof ResponseEntity<?> re) {
+      try {
+        return re.hasBody() ? objectMapper.writeValueAsString(re.getBody()) : null;
+      } catch (Exception e) {
+        return null;
+      }
+    }
+    return String.valueOf(response);
   }
 
 }

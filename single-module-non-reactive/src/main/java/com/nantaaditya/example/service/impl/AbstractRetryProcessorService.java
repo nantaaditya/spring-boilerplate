@@ -5,14 +5,11 @@ import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -38,8 +35,15 @@ public abstract class AbstractRetryProcessorService {
   public abstract String getProcessType();
   public abstract String getProcessName();
   public abstract boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess);
-  public abstract <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response);
+  public abstract <T> boolean isSuccess(T response);
+  public abstract <T> void onSuccess(DeadLetterProcess deadLetterProcess, T response);
   public abstract void onError(DeadLetterProcess deadLetterProcess, Throwable throwable);
+  public abstract <T> String toRetryHistoryResponse(T response);
+
+  public <T> T replay(DeadLetterProcess deadLetterProcess) {
+    throw new UnsupportedOperationException(
+        "Override replay() to implement custom replay logic for " + getProcessType() + "/" + getProcessName());
+  }
 
   public final void resetCounter() {
     successCounter.setRelease(0);
@@ -47,7 +51,7 @@ public abstract class AbstractRetryProcessorService {
     notEligibleCounter.setRelease(0);
   }
 
-  public final <T> void update(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response, Throwable throwable) {
+  public final <T> void update(DeadLetterProcess deadLetterProcess, T response, Throwable throwable) {
     if (isSuccess(response)) {
       deadLetterProcess.setStatus(RetryStatus.SUCCESS.name());
       successCounter.incrementAndGet();
@@ -60,33 +64,24 @@ public abstract class AbstractRetryProcessorService {
     Optional.ofNullable(throwable)
         .ifPresent(t -> deadLetterProcess.setLastError(t.getMessage()));
     updateRetryHistories(deadLetterProcess, response, throwable);
-    deadLetterProcess.setRetryCount(deadLetterProcess.getRetryCount() + 1);
-    deadLetterProcess.setUpdatedBy("internal-retry-process");
-    deadLetterProcess.setUpdatedDate(LocalDateTime.now());
+    deadLetterProcess.markRetry();
     deadLetterProcessRepository.save(deadLetterProcess);
   }
 
-  private <T> void updateRetryHistories(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response,
+  private <T> void updateRetryHistories(DeadLetterProcess deadLetterProcess, T response,
       Throwable throwable) {
     try {
       List<RetryHistoryContext> retryHistories = objectMapper.readValue(deadLetterProcess.getRetryHistories(),
           new TypeReference<List<RetryHistoryContext>>(){});
       retryHistories.add(new RetryHistoryContext(
           deadLetterProcess.getRetryCount() + 1,
-          response.hasBody() ? objectMapper.writeValueAsString(response.getBody()) : null,
+          toRetryHistoryResponse(response),
           throwable != null ? throwable.getMessage() : null
       ));
       deadLetterProcess.setRetryHistories(objectMapper.writeValueAsBytes(retryHistories));
     } catch (Exception e) {
       log.error(AppLogMessage.message("#Retry - failed to update retry histories {}", deadLetterProcess.getId()).error(e));
     }
-  }
-
-  private <T> boolean isSuccess(ResponseEntity<T> response) {
-    return Optional.ofNullable(response)
-        .map(ResponseEntity::getStatusCode)
-        .stream()
-        .anyMatch(HttpStatusCode::is2xxSuccessful);
   }
 
 }

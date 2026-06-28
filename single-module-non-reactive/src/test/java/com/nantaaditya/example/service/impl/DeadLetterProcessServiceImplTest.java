@@ -1,5 +1,6 @@
 package com.nantaaditya.example.service.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
@@ -28,6 +29,7 @@ import java.util.List;
 import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.ParameterizedTypeReference;
@@ -265,6 +267,54 @@ class DeadLetterProcessServiceImplTest {
   }
 
   @Test
+  void retry_processorReplay_success() throws IOException {
+    DeadLetterProcess result = runProcessorReplayTest(false);
+    assertEquals(RetryStatus.SUCCESS.name(), result.getStatus());
+  }
+
+  @Test
+  void retry_processorReplay_error() throws IOException {
+    DeadLetterProcess result = runProcessorReplayTest(true);
+    assertEquals(RetryStatus.EXHAUSTED.name(), result.getStatus());
+  }
+
+  private DeadLetterProcess runProcessorReplayTest(boolean replayFails) throws IOException {
+    RetryDeadLetterProcessRequest request = new RetryDeadLetterProcessRequest("type", "name", 1);
+
+    RetryHistoryContext retryHistory = new RetryHistoryContext(0, "failed", "failed");
+    List<RetryHistoryContext> retryHistories = new LinkedList<>();
+    retryHistories.add(retryHistory);
+
+    DeadLetterProcess deadLetterProcess = DeadLetterProcess.builder()
+        .processType("type")
+        .processName("name")
+        .retryCount(0)
+        .maxRetry(1)
+        .status(RetryStatus.NEW.name())
+        .retryHistories(objectMapper.writeValueAsBytes(retryHistories))
+        .build();
+    when(deadLetterProcessRepository.findByProcessTypeAndProcessNameAndStatusIn(
+        anyString(), anyString(), anySet(), any(PageRequest.class)))
+        .thenReturn(new PageImpl<>(List.of(deadLetterProcess)));
+    when(deadLetterProcessRepository.save(any(DeadLetterProcess.class)))
+        .thenAnswer(answer -> answer.getArguments()[0]);
+    when(deadLetterProcessRepository.saveAll(anyList()))
+        .thenAnswer(answer -> answer.getArgument(0));
+    when(retryProcessorHelper.getProcessor(anyString(), anyString()))
+        .thenReturn(new ExampleProcessor(deadLetterProcessRepository, objectMapper, replayFails));
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+    );
+    deadLetterProcessService.retry(request);
+
+    ArgumentCaptor<DeadLetterProcess> captor = ArgumentCaptor.forClass(DeadLetterProcess.class);
+    verify(deadLetterProcessRepository).saveAll(anyList());
+    verify(deadLetterProcessRepository).save(captor.capture());
+    return captor.getValue();
+  }
+
+  @Test
   void retry_error() throws IOException {
     RetryDeadLetterProcessRequest request = new RetryDeadLetterProcessRequest(
         "type", "name", 1
@@ -331,8 +381,16 @@ class DeadLetterProcessServiceImplTest {
   @Log4j2
   static class ExampleProcessor extends AbstractRetryProcessorService {
 
+    private final boolean replayThrows;
+
     public ExampleProcessor(DeadLetterProcessRepository deadLetterProcessRepository, ObjectMapper objectMapper) {
+      this(deadLetterProcessRepository, objectMapper, false);
+    }
+
+    public ExampleProcessor(DeadLetterProcessRepository deadLetterProcessRepository, ObjectMapper objectMapper,
+        boolean replayThrows) {
       super(deadLetterProcessRepository, objectMapper);
+      this.replayThrows = replayThrows;
     }
 
     @Override
@@ -351,14 +409,33 @@ class DeadLetterProcessServiceImplTest {
     }
 
     @Override
-    public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
-      log.info(AppLogMessage.message("success"));
+    public <T> boolean isSuccess(T response) {
+      if (response instanceof ResponseEntity<?> re) {
+        return re.getStatusCode().is2xxSuccessful();
+      }
+      return Boolean.TRUE.equals(response);
+    }
+
+    @Override
+    public <T> void onSuccess(DeadLetterProcess deadLetterProcess, T response) {
     }
 
     @Override
     public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
-      log.error(AppLogMessage.message("error").error(throwable));
     }
 
+    @Override
+    public <T> String toRetryHistoryResponse(T response) {
+      if (response instanceof ResponseEntity<?> re) {
+        return re.hasBody() ? String.valueOf(re.getBody()) : null;
+      }
+      return String.valueOf(response);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T replay(DeadLetterProcess deadLetterProcess) {
+      return (T) (replayThrows ? Boolean.FALSE : Boolean.TRUE);
+    }
   }
 }

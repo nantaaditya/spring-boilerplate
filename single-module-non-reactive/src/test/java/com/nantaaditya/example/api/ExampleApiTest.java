@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.request.ExampleRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.ResultActions;
 
-@Slf4j
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Order(0)
 public class ExampleApiTest extends BaseIntegrationTest {
@@ -26,14 +24,14 @@ public class ExampleApiTest extends BaseIntegrationTest {
 
   @Test
   @Order(0)
-  void getExample() {
+  void getExample() throws Exception {
     ResultActions result = send(HttpMethod.GET, "/api/example", null);
     assertResult(result, HttpStatus.OK, ResponseCode.SUCCESS, jsonPath("$.data", equalTo("Hello world")));
   }
 
   @Test
   @Order(1)
-  void postExample_invalidParams() {
+  void postExample_invalidParams() throws Exception {
     ExampleRequest request = new ExampleRequest(null, -1);
     ResultActions result = send(HttpMethod.POST, "/api/example", request);
     assertResult(result, HttpStatus.BAD_REQUEST, ResponseCode.INVALID_PARAMS, jsonPath("$.error.violations.name[0]", equalTo("NotBlank")));
@@ -41,7 +39,7 @@ public class ExampleApiTest extends BaseIntegrationTest {
 
   @Test
   @Order(2)
-  void postExample_success() {
+  void postExample_success() throws Exception {
     ExampleRequest request = new ExampleRequest("name", 1);
     ResultActions result = send(HttpMethod.POST, "/api/example", request);
     assertResult(result, HttpStatus.OK, ResponseCode.SUCCESS, jsonPath("$.data.name", equalTo("name")));
@@ -49,7 +47,7 @@ public class ExampleApiTest extends BaseIntegrationTest {
 
   @Test
   @Order(3)
-  void getMock_success() {
+  void getMock_success() throws Exception {
     ResultActions result = send(HttpMethod.GET, "/api/example/mock", null);
     assertResult(result, HttpStatus.OK, ResponseCode.SUCCESS, jsonPath("$.data.completed", equalTo(false)));
   }

@@ -2,6 +2,7 @@ package com.nantaaditya.example.entity;
 
 import com.nantaaditya.example.model.constant.RetryConstant;
 import com.nantaaditya.example.model.constant.RetryStatus;
+import com.nantaaditya.example.model.dto.DeadLetterCapable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -9,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -65,5 +67,42 @@ public class DeadLetterProcess extends BaseEntity {
         .lastError(ex.getMessage())
         .retryHistories(retryHistories)
         .build();
+  }
+
+  public static DeadLetterProcess create(DeadLetterCapable capable) {
+    return DeadLetterProcess.builder()
+        .processType(capable.getProcessType())
+        .processName(capable.getProcessName())
+        .payload(capable.getPayload())
+        .retryCount(0)
+        .maxRetry(1)
+        .status(RetryStatus.NEW.name())
+        .lastError("Task rejected: async executor queue full")
+        .build();
+  }
+
+  public static DeadLetterProcess create(Runnable task, String processType) {
+    return DeadLetterProcess.builder()
+        .processType(processType)
+        .processName(task.getClass().getSimpleName())
+        .retryCount(0)
+        .maxRetry(1)
+        .status(RetryStatus.NEW.name())
+        .lastError("Task rejected: async executor queue full")
+        .build();
+  }
+
+  private static final String INTERNAL_ACTOR = "internal-retry-process";
+
+  public void markAsSuccess() {
+    this.setStatus(RetryStatus.SUCCESS.name());
+    this.setUpdatedBy(INTERNAL_ACTOR);
+    this.setUpdatedDate(LocalDateTime.now());
+  }
+
+  public void markRetry() {
+    this.setRetryCount(this.getRetryCount() + 1);
+    this.setUpdatedBy(INTERNAL_ACTOR);
+    this.setUpdatedDate(LocalDateTime.now());
   }
 }

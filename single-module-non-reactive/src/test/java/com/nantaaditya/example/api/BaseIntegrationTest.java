@@ -23,8 +23,8 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.SneakyThrows;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,11 +46,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import tools.jackson.databind.ObjectMapper;
 
-@Log4j2
 @AutoConfigureMockMvc
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ExtendWith(SpringExtension.class)
 public abstract class BaseIntegrationTest {
+
+  private static final Logger log = LogManager.getLogger(BaseIntegrationTest.class);
 
   @Autowired
   protected ObjectMapper objectMapper;
@@ -65,8 +66,7 @@ public abstract class BaseIntegrationTest {
 
   protected abstract String getClientId();
 
-  @SneakyThrows
-  protected ResultActions send(HttpMethod httpMethod, String path, Object request) {
+  protected ResultActions send(HttpMethod httpMethod, String path, Object request) throws Exception {
     MockHttpServletRequestBuilder builder = buildRequest(httpMethod, path);
 
     if (builder == null) {
@@ -94,7 +94,7 @@ public abstract class BaseIntegrationTest {
         HTTP_METHODS_WITH_PAYLOAD.contains(httpMethod) && request != null ? request : null
     );
     AppLogMessage appLogMessage = AppLogMessage.message("INCOMING").httpRequest(content);
-    log(appLogMessage);
+    writeLog(appLogMessage);
 
     return mockMvc.perform(
         builder
@@ -105,8 +105,7 @@ public abstract class BaseIntegrationTest {
     );
   }
 
-  @SneakyThrows
-  protected void mock(HttpMethod httpMethod, String path, HttpStatus httpStatus, Object response, int delay) {
+  protected void mock(HttpMethod httpMethod, String path, HttpStatus httpStatus, Object response, int delay) throws Exception {
     ResponseDefinitionBuilder responseDefinitionBuilder = WireMock.aResponse()
         .withStatus(httpStatus.value())
         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -128,9 +127,8 @@ public abstract class BaseIntegrationTest {
     );
   }
 
-  @SneakyThrows
   protected void assertResult(ResultActions resultActions, HttpStatus httpStatus,
-      ResponseCode responseCode, ResultMatcher... dataResultMatcher) {
+      ResponseCode responseCode, ResultMatcher... dataResultMatcher) throws Exception {
 
     MockHttpServletResponse response = resultActions.andReturn().getResponse();
 
@@ -149,7 +147,7 @@ public abstract class BaseIntegrationTest {
         appendHeader(response),
         body
     );
-    log(AppLogMessage.message("OUTGOING").httpResponse(content));
+    writeLog(AppLogMessage.message("OUTGOING").httpResponse(content));
 
     resultActions
         .andExpect(status().is(httpStatus.value()))
@@ -194,7 +192,7 @@ public abstract class BaseIntegrationTest {
     return headers;
   }
 
-  private void log(AppLogMessage appLogMessage) {
+  private void writeLog(AppLogMessage appLogMessage) {
     log.info(appLogMessage);
   }
 }

@@ -353,7 +353,70 @@ curl -XPOST -H "Content-type: application/json" \
   'http://localhost:8080/internal-api/dead_letter_process/_retry'
 ```
 
-For the API to know how to replay a record, register a bean that extends `AbstractRetryProcessorService` matching the same `processType` and `processName`:
+The retry API routes each record through one of two paths, determined by whether `clientName` was set when the record was created:
+
+| `clientName` | Origin | Replay strategy |
+|---|---|---|
+| non-null | `RetryHelper` with an HTTP client | Resend the original HTTP request via the named `RestSender` |
+| null | `RetryHelper` (non-HTTP) or async rejection | Call `replay()` on the registered `AbstractRetryProcessorService` |
+
+For the API to know how to handle a record, register a bean that extends `AbstractRetryProcessorService` with the matching `processType` and `processName`. All abstract methods below must be implemented:
+
+| Method | Purpose |
+|---|---|
+| `getProcessType()` | Returns the process type label — must match the dead letter record |
+| `getProcessName()` | Returns the process name label — must match the dead letter record |
+| `isEligibleToBeRetried(DeadLetterProcess)` | Return `false` to skip this record and mark it `SUCCESS` immediately |
+| `isSuccess(T response)` | Inspect the result and return `true` if the operation succeeded |
+| `toRetryHistoryResponse(T response)` | Serialize the result to a string for the retry history log |
+| `onSuccess(DeadLetterProcess, T response)` | Hook called after a successful retry — update downstream state if needed |
+| `onError(DeadLetterProcess, Throwable)` | Hook called after a failed retry — alert, notify, or escalate |
+| `replay(DeadLetterProcess)` | _(Override for non-HTTP records)_ Re-execute the original business operation |
+
+**HTTP-backed processor** (records with `clientName` set — no `replay()` override needed):
+
+```java
+@Component
+public class PlaceOrderRetryProcessor extends AbstractRetryProcessorService {
+
+  public PlaceOrderRetryProcessor(DeadLetterProcessRepository deadLetterProcessRepository,
+      ObjectMapper objectMapper) {
+    super(deadLetterProcessRepository, objectMapper);
+  }
+
+  @Override public String getProcessType() { return "ORDER"; }
+  @Override public String getProcessName() { return "placeOrder"; }
+
+  @Override
+  public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
+    return deadLetterProcess.getPayload() != null;
+  }
+
+  @Override
+  public <T> boolean isSuccess(T response) {
+    if (response instanceof ResponseEntity<?> re) return re.getStatusCode().is2xxSuccessful();
+    return false;
+  }
+
+  @Override
+  public <T> String toRetryHistoryResponse(T response) {
+    if (response instanceof ResponseEntity<?> re) return String.valueOf(re.getStatusCode().value());
+    return String.valueOf(response);
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, T response) {
+    // called after HTTP resend succeeds
+  }
+
+  @Override
+  public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
+    // called after HTTP resend fails
+  }
+}
+```
+
+**Non-HTTP processor** (records without `clientName` — must override `replay()`):
 
 ```java
 @Component
@@ -367,30 +430,43 @@ public class PlaceOrderRetryProcessor extends AbstractRetryProcessorService {
     this.orderService = orderService;
   }
 
-  @Override
-  public String getProcessType() {
-    return "ORDER";
-  }
-
-  @Override
-  public String getProcessName() {
-    return "placeOrder";
-  }
+  @Override public String getProcessType() { return "ORDER"; }
+  @Override public String getProcessName() { return "placeOrder"; }
 
   @Override
   public boolean isEligibleToBeRetried(DeadLetterProcess deadLetterProcess) {
-    // optional filter — e.g. skip records older than 24 hours
-    return deadLetterProcess.getRetryCount() < deadLetterProcess.getMaxRetry();
+    return deadLetterProcess.getPayload() != null;
   }
 
   @Override
-  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, ResponseEntity<T> response) {
-    // called when replay succeeds — update downstream state if needed
+  @SuppressWarnings("unchecked")
+  public <T> T replay(DeadLetterProcess deadLetterProcess) {
+    try {
+      PlaceOrderRequest request = objectMapper.readValue(deadLetterProcess.getPayload(), PlaceOrderRequest.class);
+      return (T) orderService.placeOrder(request);
+    } catch (Exception e) {
+      throw new RuntimeException("failed to replay placeOrder", e);
+    }
+  }
+
+  @Override
+  public <T> boolean isSuccess(T response) {
+    return response instanceof OrderResponse;
+  }
+
+  @Override
+  public <T> String toRetryHistoryResponse(T response) {
+    return String.valueOf(response);
+  }
+
+  @Override
+  public <T> void onSuccess(DeadLetterProcess deadLetterProcess, T response) {
+    // called after replay() succeeds
   }
 
   @Override
   public void onError(DeadLetterProcess deadLetterProcess, Throwable throwable) {
-    // called when replay fails — alert, notify, or escalate
+    // called when replay() throws — alert, notify, or escalate
   }
 }
 ```

@@ -39,6 +39,7 @@ class DeadLetterRejectedExecutionHandlerTest {
         "placeOrder".equals(record.getProcessName()) &&
         record.getPayload() != null &&
         record.getRetryCount() == 0 &&
+        record.getMaxRetry() == 1 &&
         RetryStatus.NEW.name().equals(record.getStatus())
     ));
   }
@@ -54,6 +55,7 @@ class DeadLetterRejectedExecutionHandlerTest {
         record.getProcessName() != null &&
         record.getPayload() == null &&
         record.getRetryCount() == 0 &&
+        record.getMaxRetry() == 1 &&
         RetryStatus.NEW.name().equals(record.getStatus())
     ));
   }

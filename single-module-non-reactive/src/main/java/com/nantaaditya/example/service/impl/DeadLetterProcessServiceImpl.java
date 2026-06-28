@@ -95,12 +95,10 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
 
     for (DeadLetterProcess deadLetterProcess : deadLetterProcesses) {
       if (!processor.isEligibleToBeRetried(deadLetterProcess)) {
-        deadLetterProcess.setStatus(RetryStatus.SUCCESS.name());
-        deadLetterProcess.setUpdatedBy("internal-retry-process");
-        deadLetterProcess.setUpdatedDate(LocalDateTime.now());
+        deadLetterProcess.markAsSuccess();
         deadLetterProcessRepository.save(deadLetterProcess);
         processor.getNotEligibleCounter().incrementAndGet();
-        log.warn(AppLogMessage.message("#DeadLetterProccess - {} is not eligible to be retried",
+        log.warn(AppLogMessage.message("#DeadLetterProcess - {} is not eligible to be retried",
             deadLetterProcess.getId()));
         continue;
       } else {
@@ -113,25 +111,49 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
         processor.getNotEligibleCounter()));
   }
 
+  // clientName != null → record originated from a RestClient call; resend over HTTP.
+  // clientName == null → record originated from async/retry infrastructure; delegate to the processor's replay().
   private void retry(AbstractRetryProcessorService processor, DeadLetterProcess deadLetterProcess) {
+    if (deadLetterProcess.getClientName() != null) {
+      executeHttpRetry(processor, deadLetterProcess);
+    } else {
+      executeProcessorRetry(processor, deadLetterProcess);
+    }
+  }
+
+  private void executeHttpRetry(AbstractRetryProcessorService processor, DeadLetterProcess deadLetterProcess) {
     RestSender restSender = restSenderHelper.getRestSender(deadLetterProcess.getClientName());
-    if (restSender != null) {
-      ResponseEntity<Object> response = ResponseEntity.internalServerError().build();
-      try {
-        response = restSender.execute(
-            HttpMethod.valueOf(deadLetterProcess.getMethod()),
-            deadLetterProcess.getPath(),
-            constructHttpHeaders(deadLetterProcess),
-            constructRequest(deadLetterProcess),
-            new ParameterizedTypeReference<Object>() {
-            }
-        );
-        processor.onSuccess(deadLetterProcess, response);
-        processor.update(deadLetterProcess, response, null);
-      } catch (Exception e) {
-        processor.onError(deadLetterProcess, e);
-        processor.update(deadLetterProcess, response, e);
-      }
+    ResponseEntity<Object> response = ResponseEntity.internalServerError().build();
+    if (restSender == null) {
+      log.error(AppLogMessage.message("#DeadLetterProcess - no RestSender found for client {}", deadLetterProcess.getClientName()));
+      processor.update(deadLetterProcess, response, new IllegalStateException("unknown client: " + deadLetterProcess.getClientName()));
+      return;
+    }
+    try {
+      response = restSender.execute(
+          HttpMethod.valueOf(deadLetterProcess.getMethod()),
+          deadLetterProcess.getPath(),
+          constructHttpHeaders(deadLetterProcess),
+          constructRequest(deadLetterProcess),
+          new ParameterizedTypeReference<Object>() {}
+      );
+      processor.onSuccess(deadLetterProcess, response);
+      processor.update(deadLetterProcess, response, null);
+    } catch (Exception e) {
+      processor.onError(deadLetterProcess, e);
+      processor.update(deadLetterProcess, response, e);
+    }
+  }
+
+  private <T> void executeProcessorRetry(AbstractRetryProcessorService processor, DeadLetterProcess deadLetterProcess) {
+    T response = null;
+    try {
+      response = processor.replay(deadLetterProcess);
+      processor.onSuccess(deadLetterProcess, response);
+      processor.update(deadLetterProcess, response, null);
+    } catch (Exception e) {
+      processor.onError(deadLetterProcess, e);
+      processor.update(deadLetterProcess, null, e);
     }
   }
 
@@ -142,6 +164,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
       }
       return objectMapper.readValue(deadLetterProcess.getPayload(), Object.class);
     } catch (Exception e) {
+      log.warn(AppLogMessage.message("#DeadLetterProcess - failed to convert payload {}", deadLetterProcess.getId()).error(e));
       return null;
     }
   }

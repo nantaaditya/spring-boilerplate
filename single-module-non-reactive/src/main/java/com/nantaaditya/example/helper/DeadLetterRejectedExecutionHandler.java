@@ -1,7 +1,6 @@
 package com.nantaaditya.example.helper;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
-import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.DeadLetterCapable;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
@@ -32,23 +31,8 @@ public class DeadLetterRejectedExecutionHandler implements RejectedExecutionHand
 
   private DeadLetterProcess buildRecord(Runnable task) {
     if (task instanceof DeadLetterCapable capable) {
-      return DeadLetterProcess.builder()
-          .processType(capable.getProcessType())
-          .processName(capable.getProcessName())
-          .payload(capable.getPayload())
-          .retryCount(0)
-          .maxRetry(0)
-          .status(RetryStatus.NEW.name())
-          .lastError("Task rejected: async executor queue full")
-          .build();
+      return DeadLetterProcess.create(capable);
     }
-    return DeadLetterProcess.builder()
-        .processType(FALLBACK_PROCESS_TYPE)
-        .processName(task.getClass().getSimpleName())
-        .retryCount(0)
-        .maxRetry(0)
-        .status(RetryStatus.NEW.name())
-        .lastError("Task rejected: async executor queue full")
-        .build();
+    return DeadLetterProcess.create(task, FALLBACK_PROCESS_TYPE);
   }
 }
