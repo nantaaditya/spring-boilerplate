@@ -2,12 +2,16 @@ package com.nantaaditya.example.interceptor;
 
 import com.google.gson.Gson;
 import com.nantaaditya.example.helper.MaskingHelper;
+import com.nantaaditya.example.helper.ObservationHelper;
 import com.nantaaditya.example.model.constant.LogFormat;
+import com.nantaaditya.example.model.constant.ObservationConstant;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.ClientLogResponse;
+import com.nantaaditya.example.model.dto.ContextDTO;
 import com.nantaaditya.example.model.dto.JsonLogHttpRequest;
 import com.nantaaditya.example.model.dto.JsonLogHttpResponse;
 import com.nantaaditya.example.properties.LogProperties;
+import io.micrometer.observation.Observation;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -20,6 +24,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -37,8 +42,10 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 	private final Gson gson;
 	private final Set<String> maskingKeys;
 	private final LogFormat logFormat;
+	private final ObservationHelper observationHelper;
 
-	public ClientLogInterceptor(Gson gson, LogProperties logProperties) {
+	public ClientLogInterceptor(ObservationHelper observationHelper, Gson gson, LogProperties logProperties) {
+		this.observationHelper = observationHelper;
 		this.gson = gson;
 		this.logFormat = logProperties.logFormat();
 		this.maskingKeys = new HashSet<>(logProperties.getSensitiveFields());
@@ -51,13 +58,34 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 
-		logRequest(request, body);
+		ContextDTO contextDTO = ContextDTO.from(request);
+		Observation observation = Observation.start(
+				ObservationConstant.EXTERNAL_API.getName(),
+				() -> observationHelper.createApiContext(contextDTO),
+				observationHelper.getObservationRegistry()
+		);
 
-		ClientHttpResponse response = execution.execute(request, body);
-		ClientLogResponse wrappedResponse = new ClientLogResponse(response);
+		try (Observation.Scope scope = observation.openScope()) {
+			logRequest(request, body);
 
-		logResponse(wrappedResponse, stopWatch);
-		return wrappedResponse;
+			ClientHttpResponse response = execution.execute(request, body);
+			HttpStatusCode httpStatusCode = response.getStatusCode();
+
+			observationHelper.decorateResponseObservation(observation, String.valueOf(httpStatusCode.value()));
+
+			ClientLogResponse wrappedResponse = new ClientLogResponse(response);
+			logResponse(wrappedResponse, stopWatch);
+
+			return wrappedResponse;
+		} catch (Throwable throwable) {
+			log.error(AppLogMessage.message("#Observation - external error").error(throwable));
+			observationHelper.decorateResponseObservation(observation, throwable, (String) null);
+			throw throwable;
+		} finally {
+			if (!observation.isNoop()) {
+				observation.stop();
+			}
+		}
 	}
 
 	private void logRequest(HttpRequest request, byte[] body) {
@@ -88,7 +116,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 
 		logBuilder.append(String.format("%s %s", request.getMethod(), request.getURI()));
 		appendMaskedHeaders(logBuilder, request.getHeaders());
-		appendMaskedBody(logBuilder, new String(body));
+		appendMaskedBody(logBuilder, new String(body, StandardCharsets.UTF_8));
 
 		log.info(AppLogMessage.message(logBuilder.toString()));
 	}
@@ -105,7 +133,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
 
 		byte[] responseBody = response.getBodyBytes();
 		if (responseBody != null) {
-			appendMaskedBody(logBuilder, new String(responseBody));
+			appendMaskedBody(logBuilder, new String(responseBody, StandardCharsets.UTF_8));
 		}
 
 		log.info(AppLogMessage.message(logBuilder.toString()));
@@ -116,7 +144,7 @@ public class ClientLogInterceptor implements ClientHttpRequestInterceptor {
         request.getMethod().name(),
         request.getURI().toString(),
         getMaskedHeaders(request.getHeaders()),
-        gson.fromJson(maskJsonBody(new String(body)), Map.class)
+        gson.fromJson(maskJsonBody(new String(body, StandardCharsets.UTF_8)), Map.class)
     );
 
 		log.info(AppLogMessage.message("#Client").httpRequest(content));

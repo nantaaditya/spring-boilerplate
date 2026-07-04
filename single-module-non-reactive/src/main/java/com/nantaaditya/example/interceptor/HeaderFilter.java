@@ -14,7 +14,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -53,20 +52,20 @@ public class HeaderFilter extends OncePerRequestFilter {
         () -> observationHelper.createApiContext(context),
         observationHelper.getObservationRegistry()
     );
-    observationWrapper.setObservation(observation);
+    observationWrapper.setObservation(httpServletRequest, observation);
 
     Map<String, String> contextMap = MDC.getCopyOfContextMap();
 
     try (Observation.Scope scope = observation.openScope()) {
       MDC.setContextMap(contextMap);
-      filterChain.doFilter(httpServletRequest, getResponseWrapper(response, observation));
+      filterChain.doFilter(httpServletRequest, response);
     } catch (Throwable throwable) {
       log.error(AppLogMessage.message("#Observation - error").error(throwable));
-      observationHelper.decorateErrorObservation(observationWrapper, throwable, null);
+      observationHelper.decorateResponseObservation(observation, throwable, (String) null);
       throw throwable;
     } finally {
       if (!observation.isNoop()) observation.stop();
-      observationWrapper.clear();
+      observationWrapper.clear(httpServletRequest);
     }
   }
 
@@ -88,16 +87,5 @@ public class HeaderFilter extends OncePerRequestFilter {
     response.addHeader(HeaderConstant.REQUEST_TIME.getHeader(), contextDTO.receivedTime());
     response.addHeader(HeaderConstant.RECEIVED_TIME.getHeader(), contextDTO.receivedTime());
   }
-
-  private HttpServletResponseWrapper getResponseWrapper(HttpServletResponse httpServletResponse, Observation observation) {
-    return new HttpServletResponseWrapper(httpServletResponse) {
-      @Override
-      public void flushBuffer() throws IOException {
-        super.flushBuffer();
-        observationWrapper.clear();
-      }
-    };
-  }
-
 }
 

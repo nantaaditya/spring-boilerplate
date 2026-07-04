@@ -1,15 +1,13 @@
 # Spring Boot Single-Module Non-Reactive Boilerplate
 
-An example Spring Boot boilerplate project using a single module, non-reactive stack.
+## Overview
 
-## Prerequisites
+An example Spring Boot boilerplate project using a single module, non-reactive (Servlet MVC) stack. It bundles the
+plumbing that most services need on day one — structured/segregated logging, request auditing, retry with
+dead-letter replay, async task execution, external HTTP client configuration, and Micrometer observability — so new
+services can focus on business logic instead of re-solving these cross-cutting concerns.
 
-- Java 21+
-- Spring Boot 4.0.6
-- Maven 3.9+
-- H2 (embedded, for local/test) or any JPA-compatible database
-
-## Capabilities
+Key capabilities:
 
 - Save request on each endpoint call to `event_log` table
 - Endpoint to run schema migration manually
@@ -23,6 +21,47 @@ An example Spring Boot boilerplate project using a single module, non-reactive s
 - Retryable process based on retry policy with Micrometer observability
 - External client auto configuration
 - OpenAPI & Swagger
+
+## Architecture
+
+### Request lifecycle
+
+```
+Client
+  │
+  ▼
+HeaderFilter            — reads x-client-id/x-request-id/x-request-time, opens the root Micrometer Observation,
+  │                        wraps the request body for logging (CacheBodyRequest)
+  ▼
+DispatcherServlet
+  │
+  ▼
+Controller               — API / internal-api endpoints (thin, delegate to services)
+  │
+  ▼
+Service layer             — business logic, orchestrates repositories, retry helper, async tasks
+  │
+  ▼
+Repository (Spring Data JPA) ── PostgreSQL / H2
+```
+
+Errors thrown from any layer are caught centrally by `ApiExceptionHandler` (`@RestControllerAdvice`), which maps
+known exception types to a `ResponseCode`, decorates the current Observation with the failure, and returns a
+consistent `Response<T>` envelope.
+
+### Cross-cutting concerns
+
+- **Observability** — `ObservationWrapper`/`ObservationHelper` attach a Micrometer `Observation` to the request
+  attributes so it can be decorated (success/error) and propagated to async threads (`ObservationWrapper.wrap`).
+  `AppObservationListener` logs the lifecycle of observations matching `ObservationConstant` names.
+- **Structured logging** — Log4j2 with a custom JSON layout (`JsonLogLayout`/`TextLogLayout`), segregated into app,
+  metric, and trace log files. All log statements go through `AppLogMessage` for a consistent envelope.
+- **Client logging** — `ClientLogInterceptor` logs outbound `RestClient` calls (request/response, masked sensitive
+  fields, duration) and decorates the Observation with the response status or error.
+- **Retry & dead-letter** — `RetryHelper` wraps business calls with a named `RetryTemplate`; exhausted retries and
+  rejected async tasks are persisted to `dead_letter_process` for later replay via `AbstractRetryProcessorService`.
+- **Async execution** — named thread pools (`apps.async.configurations.[name]`) with a pluggable rejection strategy
+  (`LOG_AND_DROP` or `DEAD_LETTER`).
 
 ## Project Structure
 
@@ -540,3 +579,130 @@ Enabled by default at:
 ```
 http://localhost:${PORT}/${CONTEXT_PATH}/swagger-ui/index.html
 ```
+
+---
+
+## API Reference
+
+Full interactive docs are served by Swagger at `/swagger-ui/index.html` (see above). Quick reference:
+
+### Public API
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/example` | Sample endpoint returning a static greeting |
+| `POST` | `/api/example` | Sample endpoint echoing `name`/`age` from the request body |
+| `GET` | `/api/example/mock` | Sample endpoint calling the `mock` external client |
+
+### Internal API
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/internal-api/database/migrate` | Runs Flyway migration manually. Only registered when `spring.flyway.enabled=true` |
+| `DELETE` | `/internal-api/event_log?days=30` | Removes `event_log` records older than `days` |
+| `DELETE` | `/internal-api/dead_letter_process?days=30` | Removes `dead_letter_process` records older than `days` |
+| `POST` | `/internal-api/dead_letter_process/_retry` | Batch-retries `NEW`/`FAILED` records matching `processType`/`processName`, up to `size` records |
+| `POST` | `/internal-api/dead_letter_process/{id}/_retry` | Force-retries a single record by id (also allows retrying `RETRYING` records stuck from a crashed run) |
+
+All responses use the common `Response<T>` envelope (`error` and `data` are omitted when null):
+
+```json
+{
+  "response": { "code": "000", "description": "success", "time": "2026-07-04T15:42:00+07:00" },
+  "data": {},
+  "error": { "violations": { "field": ["must not be blank"] } }
+}
+```
+
+`response.code` comes from `ResponseCode`: `000` success, `400` bad request, `404` not found, `500` internal error,
+`900` invalid parameters.
+
+---
+
+## Configuration
+
+Configuration is layered through `src/main/resources/application.yml`, with every value overridable via environment
+variable (see the `${VAR:default}` placeholders in the file). A fully generated, per-variable reference — including
+type, default, required/secret flags, and a production go-live checklist — is maintained at
+[`docs/ENVIRONMENT_VARIABLES.md`](docs/ENVIRONMENT_VARIABLES.md).
+
+Main configuration groups under the `apps.*` prefix:
+
+| Group | Purpose |
+|---|---|
+| `apps.log.*` | Enable/disable trace, metric, and API logging; sensitive field masking; log format (`JSON`/`TEXT`) |
+| `apps.retry.configurations.[retryKey]` | Named `RetryTemplate` beans — backoff policy, intervals, max attempts, retryable exceptions |
+| `apps.async.configurations.[asyncName]` | Named thread pool executors — pool sizing, queue capacity, rejection strategy |
+| `apps.client.configurations.[clientName]` | Named external HTTP clients — host, timeouts, proxy, basic auth, SSL verification |
+| `apps.client.pooling.*` / `apps.client.network-configuration.*` | Shared HTTP connection pool and socket-level tuning applied to all clients |
+| `apps.swagger.host` | Host used to build the OpenAPI server URL |
+
+Spring-native groups worth knowing:
+
+- `spring.flyway.*` — controls automatic migration on startup (see [Database](#database))
+- `spring.datasource.*` / `spring.jpa.*` — datasource and Hibernate settings
+- `management.*` — Actuator port, exposed endpoints, and tracing sampling/baggage propagation
+
+## Local Development
+
+### Prerequisites
+
+- Java 21+
+- Maven 3.9+ (or use the bundled `./mvnw` wrapper)
+- PostgreSQL (or point `DB_URL` at any JPA-compatible database — H2 is on the test classpath for tests)
+
+### Run from source
+
+```shell
+./mvnw spring-boot:run
+```
+
+The app starts on `http://localhost:8080` by default (`SERVER_PORT`), with Actuator on a separate port
+`http://localhost:1001` (`ACTUATOR_PORT`). Swagger UI is at `http://localhost:8080/swagger-ui/index.html`.
+
+### Run the test suite
+
+```shell
+./mvnw test
+```
+
+### Build and run as a container
+
+```shell
+.script/build_jar.sh      # mvn install — produces target/*.jar and target/dependency/*.jar
+.script/build_docker.sh   # docker build -f .docker/Dockerfile -t example:0.0.1 .
+.script/docker_run.sh     # docker run -d -p 8080:8080 --env-file .env/dev.env --name example example:0.0.1
+```
+
+`.env/dev.env` holds the environment variables consumed by the container (database connection, log path, etc.) — see
+[`docs/ENVIRONMENT_VARIABLES.md`](docs/ENVIRONMENT_VARIABLES.md) for the full list and defaults.
+
+## Database
+
+The project uses Spring Data JPA over PostgreSQL, with schema managed by Flyway migrations in
+`src/main/resources/db/migration`. Migrations run automatically on startup (`spring.flyway.enabled=true` by
+default); see [Endpoint to run schema migration manually](#endpoint-to-run-schema-migration-manually) to trigger
+them on demand instead.
+
+### Tables
+
+| Table | Migration | Purpose |
+|---|---|---|
+| `event_logs` | `V1__create_event_log_table.sql` | One row per logged endpoint call — client/request id, method, path, response code, payload, and additional data |
+| `dead_letter_process` | `V2__create_dead_letter_process_table.sql` | Failed/exhausted retry and rejected async task records, replayable via the retry API |
+
+`dead_letter_process` also has a composite index on `(process_type, process_name, status)` to support the batch
+retry query.
+
+### Entities
+
+- `BaseEntity` — shared auditing fields (`createdBy`, `updatedBy`, `createdDate`, `updatedDate`) plus an optimistic
+  locking `@Version` column, applied via `@MappedSuperclass` + `AuditingEntityListener`
+- `EventLog`, `DeadLetterProcess` — map to the tables above
+- IDs are generated with `TsidGenerator`/`TimeSeriesId` (time-sortable IDs), except `dead_letter_process.id`, which
+  is a `bigserial`
+
+### Local database
+
+For local development, point `DB_URL`/`DB_USERNAME`/`DB_PASSWORD` at any PostgreSQL instance. H2 is available on the
+test classpath and is used for the automated test suite only — it is not wired up as a runtime profile.

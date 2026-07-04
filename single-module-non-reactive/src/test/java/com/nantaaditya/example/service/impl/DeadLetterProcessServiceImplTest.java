@@ -18,7 +18,6 @@ import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RestSenderHelper;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.constant.RetryStatus;
-import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;

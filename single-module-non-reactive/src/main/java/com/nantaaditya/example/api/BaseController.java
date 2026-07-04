@@ -5,6 +5,8 @@ import com.nantaaditya.example.helper.ObservationWrapper;
 import com.nantaaditya.example.model.constant.ResponseCode;
 import com.nantaaditya.example.model.error.GeneralFlowException;
 import com.nantaaditya.example.model.response.Response;
+import io.micrometer.observation.Observation;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -18,14 +20,18 @@ public class BaseController {
   @Autowired
   private ObservationWrapper observationWrapper;
 
-  protected  <T> ResponseEntity<Response<T>> toResponse(Response<T> tResponse) {
+  @Autowired
+  private HttpServletRequest request;
+
+  protected <T> ResponseEntity<Response<T>> toResponse(Response<T> tResponse) {
     ResponseCode responseCode = ResponseCode.fromCode(tResponse.getResponse().getCode());
 
     boolean isSuccess = ResponseCode.SUCCESS == responseCode;
     HttpStatusCode httpStatusCode = isSuccess ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
 
-    observationHelper.decorateErrorObservation(
-        observationWrapper,
+    Observation observation = observationWrapper.getObservation(request);
+    observationHelper.decorateResponseObservation(
+        observation,
         isSuccess ? null : new GeneralFlowException(responseCode),
         responseCode
     );

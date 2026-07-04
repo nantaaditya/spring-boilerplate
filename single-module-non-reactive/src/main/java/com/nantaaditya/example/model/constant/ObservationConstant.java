@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum ObservationConstant {
   INTERNAL_API("api.internal"),
-  PUBLIC_API("api.public");
+  PUBLIC_API("api.public"),
+  EXTERNAL_API("api.external");
 
   private String name;
 

@@ -17,3 +17,5 @@
 **/.classpath
 **/.reports*/*
 **/.logs/*
+.understand-anything/**
+.tokensave
