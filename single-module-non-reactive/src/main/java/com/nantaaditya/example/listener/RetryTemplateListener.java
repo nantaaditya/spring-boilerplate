@@ -2,6 +2,7 @@ package com.nantaaditya.example.listener;
 
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.ContextHelper;
+import com.nantaaditya.example.helper.RetryExhaustionNotifier;
 import com.nantaaditya.example.model.constant.AppsFeatureConstant;
 import com.nantaaditya.example.model.constant.RetryConstant;
 import com.nantaaditya.example.model.constant.RetryFeatureConstant;
@@ -15,9 +16,12 @@ import com.nantaaditya.example.model.observation.RetryObservationContext;
 import com.nantaaditya.example.model.observation.RetryObservationConvention;
 import com.nantaaditya.example.model.observation.RetryObservationState;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
+import com.nantaaditya.example.spi.RetryExhaustionSource;
+import com.nantaaditya.example.spi.RetryOutcomeEvent;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import java.time.LocalDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,16 +46,19 @@ public class RetryTemplateListener implements RetryListener {
   private final DeadLetterProcessRepository deadLetterProcessRepository;
   private final ObservationRegistry observationRegistry;
   private final MeterRegistry meterRegistry;
+  private final RetryExhaustionNotifier retryExhaustionNotifier;
   private final RetryObservationConvention convention = new RetryObservationConvention();
 
   public RetryTemplateListener(String name, ObjectMapper objectMapper,
       DeadLetterProcessRepository deadLetterProcessRepository,
-      ObservationRegistry observationRegistry, MeterRegistry meterRegistry) {
+      ObservationRegistry observationRegistry, MeterRegistry meterRegistry,
+      RetryExhaustionNotifier retryExhaustionNotifier) {
     this.name = name;
     this.objectMapper = objectMapper;
     this.deadLetterProcessRepository = deadLetterProcessRepository;
     this.observationRegistry = observationRegistry;
     this.meterRegistry = meterRegistry;
+    this.retryExhaustionNotifier = retryExhaustionNotifier;
   }
 
   @Override
@@ -207,6 +214,24 @@ public class RetryTemplateListener implements RetryListener {
 
       deadLetterProcessRepository.save(
           DeadLetterProcess.create(retryContext, request, retryHistoriesBytes, throwable));
+
+      int maxRetry;
+      if (retryContext.get(RetryConstant.MAX_RETRY.getName()) instanceof Integer i) {
+        maxRetry = i;
+      } else {
+        maxRetry = 0;
+        log.warn(AppLogMessage.message("#RETRY - missing/invalid max_retry in context, "
+            + "reporting exhaustion event with maxRetry=0 {}", safeContextLog(retryContext)));
+      }
+      retryExhaustionNotifier.notifyExhausted(new RetryOutcomeEvent(
+          (String) retryContext.get(RetryConstant.PROCESS_TYPE.getName()),
+          (String) retryContext.get(RetryConstant.PROCESS_NAME.getName()),
+          (String) retryContext.get(RetryConstant.REQUEST_ID.getName()),
+          maxRetry,
+          maxRetry,
+          throwable.getMessage(),
+          RetryExhaustionSource.INITIAL_RETRY,
+          LocalDateTime.now()));
     } catch (Exception e) {
       log.error(AppLogMessage.message("#RETRY - failed to save exhausted retry {} {}",
           safeContextLog(retryContext), e.getMessage()).error(e));

@@ -19,6 +19,7 @@ Key capabilities:
 - Response time tracing on each endpoint call on log
 - Structured log & segregate log for apps, metrics, response time, and error
 - Retryable process based on retry policy with Micrometer observability
+- SPI to notify external listeners when a retry is exhausted or a dead-letter replay succeeds
 - External client auto configuration
 - OpenAPI & Swagger
 
@@ -60,6 +61,8 @@ consistent `Response<T>` envelope.
   fields, duration) and decorates the Observation with the response status or error.
 - **Retry & dead-letter** — `RetryHelper` wraps business calls with a named `RetryTemplate`; exhausted retries and
   rejected async tasks are persisted to `dead_letter_process` for later replay via `AbstractRetryProcessorService`.
+  `RetryExhaustionNotifier` notifies registered `RetryOutcomeListener` beans when a retry is exhausted or a replay
+  succeeds.
 - **Async execution** — named thread pools (`apps.async.configurations.[name]`) with a pluggable rejection strategy
   (`LOG_AND_DROP` or `DEAD_LETTER`).
 
@@ -523,6 +526,38 @@ The `update()` method on `AbstractRetryProcessorService` handles status transiti
 - Success → status `SUCCESS`
 - Failure, retries remaining → status `FAILED`
 - Failure, max retries reached → status `EXHAUSTED`
+
+### Notification SPI for retry outcomes
+
+Consumers can be notified for exactly two outcomes, regardless of which path produced them — never for an ordinary first-attempt success:
+
+| Outcome | Trigger |
+|---|---|
+| Retry exhausted | `RetryHelper.execute()` runs out of attempts (Path 1 above), **or** a dead-letter replay (`/dead_letter_process/_retry`) hits `EXHAUSTED` |
+| Replay succeeded | A dead-letter replay (`/dead_letter_process/_retry`) hits `SUCCESS` — a *live* `RetryHelper.execute()` success does **not** fire this |
+
+Implement `RetryOutcomeListener` and register it as a Spring bean — both methods are default no-ops, so only override the one you need:
+
+```java
+@Component
+public class OrderRetryAlerting implements RetryOutcomeListener {
+
+  @Override
+  public void onRetryExhausted(RetryOutcomeEvent event) {
+    // event.source() is INITIAL_RETRY or DEAD_LETTER_REPLAY
+    alertingService.notify("retry exhausted for " + event.processType() + "/" + event.processName());
+  }
+
+  @Override
+  public void onReplaySuccess(RetryOutcomeEvent event) {
+    alertingService.notify("dead-letter replay succeeded for " + event.processType() + "/" + event.processName());
+  }
+}
+```
+
+All `RetryOutcomeListener` beans are auto-collected by `RetryExhaustionNotifier` — no manual wiring needed, and registering zero listeners is a no-op. Listeners are invoked independently: if one throws, it's logged and the remaining listeners still run.
+
+`RetryOutcomeEvent` carries `processType`, `processName`, `idempotencyKey`, `retryCount`, `maxRetry`, `lastError`, `source`, and `occurredAt`. Note that `idempotencyKey` differs by `source()`: the request id for `INITIAL_RETRY`, the dead-letter record's actual idempotency key for `DEAD_LETTER_REPLAY`.
 
 ### External client auto configuration
 

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
@@ -16,11 +17,14 @@ import static org.mockito.Mockito.when;
 import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RestSenderHelper;
+import com.nantaaditya.example.helper.RetryExhaustionNotifier;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.RetryHistoryContext;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
+import com.nantaaditya.example.spi.RetryExhaustionSource;
+import com.nantaaditya.example.spi.RetryOutcomeEvent;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -64,13 +68,17 @@ class DeadLetterProcessServiceImplTest {
   @Mock
   private RestSender restSender;
 
+  @Mock
+  private RetryExhaustionNotifier retryExhaustionNotifier;
+
   @Test
   void remove() {
     doNothing().when(deadLetterProcessRepository).deleteByCreatedDateBeforeAndStatus(
         any(LocalDateTime.class), eq(RetryStatus.SUCCESS.name()));
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.remove(30);
 
@@ -90,7 +98,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(processes);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -138,7 +147,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(null);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -200,7 +210,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(exampleProcessor);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -210,6 +221,61 @@ class DeadLetterProcessServiceImplTest {
     verify(deadLetterProcessRepository).saveAll(anyList());
     verify(retryProcessorHelper).getProcessor(anyString(), anyString());
     verify(deadLetterProcessRepository).save(any(DeadLetterProcess.class));
+    verify(retryExhaustionNotifier).notifyReplaySuccess(any(RetryOutcomeEvent.class));
+  }
+
+  @Test
+  void retry_unknownClient_notifiesExhausted() throws IOException {
+    RetryDeadLetterProcessRequest request = new RetryDeadLetterProcessRequest(
+        "type", "name", 1
+    );
+
+    LinkedMultiValueMap headers = new LinkedMultiValueMap();
+    headers.add("Accept", "application/json");
+    headers.add("Content-Type", "application/json");
+
+    RetryHistoryContext retryHistory = new RetryHistoryContext(
+        0, "failed", "failed"
+    );
+    List<RetryHistoryContext> retryHistories = new LinkedList<>();
+    retryHistories.add(retryHistory);
+
+    DeadLetterProcess deadLetterProcess = DeadLetterProcess.builder()
+        .clientName("unknown-client")
+        .method(HttpMethod.POST.name())
+        .path("/api")
+        .headers(objectMapper.writeValueAsString(headers))
+        .idempotencyKey("1")
+        .processType("type")
+        .processName("name")
+        .retryCount(2)
+        .maxRetry(3)
+        .status(RetryStatus.NEW.name())
+        .retryHistories(objectMapper.writeValueAsBytes(retryHistories))
+        .build();
+    Page<DeadLetterProcess> processes = new PageImpl<>(List.of(deadLetterProcess));
+    when(deadLetterProcessRepository.findByProcessTypeAndProcessNameAndStatusIn(
+        anyString(), anyString(), anySet(), any(PageRequest.class)))
+        .thenReturn(processes);
+    when(deadLetterProcessRepository.save(any(DeadLetterProcess.class)))
+        .thenAnswer(answer -> answer.getArguments()[0]);
+    when(deadLetterProcessRepository.saveAll(anyList()))
+        .thenAnswer(answer -> answer.getArgument(0));
+    when(restSenderHelper.getRestSender(deadLetterProcess.getClientName()))
+        .thenReturn(null);
+
+    ExampleProcessor exampleProcessor = new ExampleProcessor(deadLetterProcessRepository, objectMapper);
+    when(retryProcessorHelper.getProcessor(anyString(), anyString()))
+        .thenReturn(exampleProcessor);
+
+    deadLetterProcessService = new DeadLetterProcessServiceImpl(
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
+    );
+    deadLetterProcessService.retry(request);
+
+    verify(retryExhaustionNotifier).notifyExhausted(argThat((RetryOutcomeEvent event) ->
+        event.source() == RetryExhaustionSource.DEAD_LETTER_REPLAY));
   }
 
   @Test
@@ -256,7 +322,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(exampleProcessor);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -272,12 +339,15 @@ class DeadLetterProcessServiceImplTest {
   void retry_processorReplay_success() throws IOException {
     DeadLetterProcess result = runProcessorReplayTest(false);
     assertEquals(RetryStatus.SUCCESS.name(), result.getStatus());
+    verify(retryExhaustionNotifier).notifyReplaySuccess(any(RetryOutcomeEvent.class));
   }
 
   @Test
   void retry_processorReplay_error() throws IOException {
     DeadLetterProcess result = runProcessorReplayTest(true);
     assertEquals(RetryStatus.EXHAUSTED.name(), result.getStatus());
+    verify(retryExhaustionNotifier).notifyExhausted(argThat((RetryOutcomeEvent event) ->
+        event.source() == RetryExhaustionSource.DEAD_LETTER_REPLAY));
   }
 
   private DeadLetterProcess runProcessorReplayTest(boolean replayFails) throws IOException {
@@ -306,7 +376,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(new ExampleProcessor(deadLetterProcessRepository, objectMapper, replayFails));
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -368,7 +439,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(exampleProcessor);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retry(request);
 
@@ -385,7 +457,8 @@ class DeadLetterProcessServiceImplTest {
     when(deadLetterProcessRepository.findById(99L)).thenReturn(Optional.empty());
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
 
     assertThrows(NoSuchElementException.class, () -> deadLetterProcessService.retryById(99L));
@@ -407,7 +480,8 @@ class DeadLetterProcessServiceImplTest {
     when(deadLetterProcessRepository.findById(1L)).thenReturn(Optional.of(deadLetterProcess));
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retryById(1L);
 
@@ -430,7 +504,8 @@ class DeadLetterProcessServiceImplTest {
     when(retryProcessorHelper.getProcessor(anyString(), anyString())).thenReturn(null);
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retryById(1L);
 
@@ -459,7 +534,8 @@ class DeadLetterProcessServiceImplTest {
         .thenReturn(new ExampleProcessor(deadLetterProcessRepository, objectMapper, false));
 
     deadLetterProcessService = new DeadLetterProcessServiceImpl(
-        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper
+        deadLetterProcessRepository, retryProcessorHelper, restSenderHelper, objectMapper,
+        retryExhaustionNotifier
     );
     deadLetterProcessService.retryById(1L);
 

@@ -1,6 +1,7 @@
 package com.nantaaditya.example.configuration;
 
 import com.nantaaditya.example.factory.RetryTemplateHelperFactory;
+import com.nantaaditya.example.helper.RetryExhaustionNotifier;
 import com.nantaaditya.example.listener.RetryTemplateListener;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.properties.RetryProperties;
@@ -36,6 +37,7 @@ public class RetryTemplateConfiguration {
   private final RetryProperties retryProperties;
   private final ObservationRegistry observationRegistry;
   private final MeterRegistry meterRegistry;
+  private final RetryExhaustionNotifier retryExhaustionNotifier;
 
   private static final String POSTFIX_BEAN_NAME = "RetryTemplate";
 
@@ -69,7 +71,7 @@ public class RetryTemplateConfiguration {
     RetryTemplate retryTemplate = new RetryTemplate();
     retryTemplate.setRetryPolicy(retryPolicy);
     retryTemplate.setRetryListener(new RetryTemplateListener(name, objectMapper,
-        deadLetterProcessRepository, observationRegistry, meterRegistry));
+        deadLetterProcessRepository, observationRegistry, meterRegistry, retryExhaustionNotifier));
     return retryTemplate;
   }
 

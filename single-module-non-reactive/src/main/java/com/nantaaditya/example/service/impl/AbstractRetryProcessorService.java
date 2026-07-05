@@ -51,21 +51,24 @@ public abstract class AbstractRetryProcessorService {
     notEligibleCounter.setRelease(0);
   }
 
-  public final <T> void update(DeadLetterProcess deadLetterProcess, T response, Throwable throwable) {
+  public final <T> RetryStatus update(DeadLetterProcess deadLetterProcess, T response, Throwable throwable) {
+    RetryStatus resultStatus;
     if (isSuccess(response)) {
-      deadLetterProcess.setStatus(RetryStatus.SUCCESS.name());
+      resultStatus = RetryStatus.SUCCESS;
       successCounter.incrementAndGet();
     } else {
-      boolean isMaxRetry = deadLetterProcess.getRetryCount() + 1 < deadLetterProcess.getMaxRetry();
-      deadLetterProcess.setStatus(isMaxRetry ? RetryStatus.FAILED.name() : RetryStatus.EXHAUSTED.name());
+      boolean hasRetriesLeft = deadLetterProcess.getRetryCount() + 1 < deadLetterProcess.getMaxRetry();
+      resultStatus = hasRetriesLeft ? RetryStatus.FAILED : RetryStatus.EXHAUSTED;
       failedCounter.incrementAndGet();
     }
+    deadLetterProcess.setStatus(resultStatus.name());
 
     Optional.ofNullable(throwable)
         .ifPresent(t -> deadLetterProcess.setLastError(t.getMessage()));
     updateRetryHistories(deadLetterProcess, response, throwable);
     deadLetterProcess.markRetry();
     deadLetterProcessRepository.save(deadLetterProcess);
+    return resultStatus;
   }
 
   private <T> void updateRetryHistories(DeadLetterProcess deadLetterProcess, T response,

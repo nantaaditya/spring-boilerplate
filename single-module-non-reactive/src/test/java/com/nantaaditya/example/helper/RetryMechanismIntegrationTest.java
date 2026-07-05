@@ -36,6 +36,8 @@ class RetryMechanismIntegrationTest extends BaseIntegrationTest {
   private DeadLetterProcessRepository deadLetterProcessRepository;
   @Autowired
   private RetryHelper retryHelper;
+  @Autowired
+  private RetryExhaustionNotifier retryExhaustionNotifier;
 
   private TestObservationRegistry observationRegistry;
   private SimpleMeterRegistry meterRegistry;
@@ -187,7 +189,7 @@ class RetryMechanismIntegrationTest extends BaseIntegrationTest {
     RetryTemplate template = new RetryTemplate();
     template.setRetryPolicy(builder.build());
     template.setRetryListener(new RetryTemplateListener(TEMPLATE_NAME, objectMapper,
-        deadLetterProcessRepository, observationRegistry, meterRegistry));
+        deadLetterProcessRepository, observationRegistry, meterRegistry, retryExhaustionNotifier));
     return template;
   }
 

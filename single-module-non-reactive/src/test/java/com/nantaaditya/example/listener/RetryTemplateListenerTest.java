@@ -1,10 +1,15 @@
 package com.nantaaditya.example.listener;
 
 import static io.micrometer.observation.tck.TestObservationRegistryAssert.assertThat;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 
+import com.nantaaditya.example.helper.RetryExhaustionNotifier;
 import com.nantaaditya.example.model.constant.RetryConstant;
 import com.nantaaditya.example.model.observation.ObservableRetryable;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
+import com.nantaaditya.example.spi.RetryExhaustionSource;
+import com.nantaaditya.example.spi.RetryOutcomeEvent;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
@@ -29,6 +34,8 @@ class RetryTemplateListenerTest {
   private DeadLetterProcessRepository deadLetterProcessRepository;
   @Mock
   private RetryPolicy retryPolicy;
+  @Mock
+  private RetryExhaustionNotifier retryExhaustionNotifier;
 
   private TestObservationRegistry observationRegistry;
   private SimpleMeterRegistry meterRegistry;
@@ -39,7 +46,7 @@ class RetryTemplateListenerTest {
     observationRegistry = TestObservationRegistry.create();
     meterRegistry = new SimpleMeterRegistry();
     listener = new RetryTemplateListener(NAME, JsonMapper.builder().build(),
-        deadLetterProcessRepository, observationRegistry, meterRegistry);
+        deadLetterProcessRepository, observationRegistry, meterRegistry, retryExhaustionNotifier);
   }
 
   private ObservableRetryable<String> wrapper() {
@@ -108,6 +115,28 @@ class RetryTemplateListenerTest {
         .hasLowCardinalityKeyValue("retry_name", NAME)
         .hasLowCardinalityKeyValue("outcome", "exhausted")
         .hasBeenStopped();
+  }
+
+  @Test
+  @DisplayName("exhaustion: notifies RetryExhaustionNotifier with INITIAL_RETRY source")
+  void onRetryPolicyExhaustion_notifiesExhaustionListener() {
+    ObservableRetryable<String> w = wrapper();
+    w.retryContext().put(RetryConstant.PROCESS_TYPE.getName(), "orderSync");
+    w.retryContext().put(RetryConstant.PROCESS_NAME.getName(), "orderSyncName");
+    w.retryContext().put(RetryConstant.REQUEST_ID.getName(), "req-123");
+    w.retryContext().put(RetryConstant.MAX_RETRY.getName(), 3);
+    RetryException retryEx = new RetryException("exhausted",
+        new IllegalArgumentException("cause"));
+
+    listener.onRetryPolicyExhaustion(retryPolicy, w, retryEx);
+
+    verify(retryExhaustionNotifier).notifyExhausted(argThat((RetryOutcomeEvent event) ->
+        "orderSync".equals(event.processType())
+            && "orderSyncName".equals(event.processName())
+            && "req-123".equals(event.idempotencyKey())
+            && event.retryCount() == 3
+            && event.maxRetry() == 3
+            && event.source() == RetryExhaustionSource.INITIAL_RETRY));
   }
 
   @Test

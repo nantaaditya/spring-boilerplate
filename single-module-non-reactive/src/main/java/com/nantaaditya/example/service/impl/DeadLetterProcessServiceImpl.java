@@ -4,12 +4,15 @@ import com.nantaaditya.example.entity.DeadLetterProcess;
 import com.nantaaditya.example.helper.DateTimeHelper;
 import com.nantaaditya.example.helper.RestSender;
 import com.nantaaditya.example.helper.RestSenderHelper;
+import com.nantaaditya.example.helper.RetryExhaustionNotifier;
 import com.nantaaditya.example.helper.RetryProcessorHelper;
 import com.nantaaditya.example.model.constant.RetryStatus;
 import com.nantaaditya.example.model.dto.AppLogMessage;
 import com.nantaaditya.example.model.request.RetryDeadLetterProcessRequest;
 import com.nantaaditya.example.repository.DeadLetterProcessRepository;
 import com.nantaaditya.example.service.internal.DeadLetterProcessService;
+import com.nantaaditya.example.spi.RetryExhaustionSource;
+import com.nantaaditya.example.spi.RetryOutcomeEvent;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -45,6 +48,7 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
   private final RetryProcessorHelper retryProcessorHelper;
   private final RestSenderHelper restSenderHelper;
   private final ObjectMapper objectMapper;
+  private final RetryExhaustionNotifier retryExhaustionNotifier;
 
   @Async("defaultAsyncTaskExecutor")
   @Override
@@ -131,7 +135,8 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
     ResponseEntity<Object> response = ResponseEntity.internalServerError().build();
     if (restSender == null) {
       log.error(AppLogMessage.message("#DeadLetterProcess - no RestSender found for client {}", deadLetterProcess.getClientName()));
-      processor.update(deadLetterProcess, response, new IllegalStateException("unknown client: " + deadLetterProcess.getClientName()));
+      notifyReplayOutcome(deadLetterProcess, processor.update(deadLetterProcess, response,
+          new IllegalStateException("unknown client: " + deadLetterProcess.getClientName())));
       return;
     }
     try {
@@ -143,10 +148,10 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
           new ParameterizedTypeReference<Object>() {}
       );
       processor.onSuccess(deadLetterProcess, response);
-      processor.update(deadLetterProcess, response, null);
+      notifyReplayOutcome(deadLetterProcess, processor.update(deadLetterProcess, response, null));
     } catch (Exception e) {
       processor.onError(deadLetterProcess, e);
-      processor.update(deadLetterProcess, response, e);
+      notifyReplayOutcome(deadLetterProcess, processor.update(deadLetterProcess, response, e));
     }
   }
 
@@ -155,10 +160,31 @@ public class DeadLetterProcessServiceImpl implements DeadLetterProcessService {
     try {
       response = processor.replay(deadLetterProcess);
       processor.onSuccess(deadLetterProcess, response);
-      processor.update(deadLetterProcess, response, null);
+      notifyReplayOutcome(deadLetterProcess, processor.update(deadLetterProcess, response, null));
     } catch (Exception e) {
       processor.onError(deadLetterProcess, e);
-      processor.update(deadLetterProcess, null, e);
+      notifyReplayOutcome(deadLetterProcess, processor.update(deadLetterProcess, null, e));
+    }
+  }
+
+  private void notifyReplayOutcome(DeadLetterProcess deadLetterProcess, RetryStatus status) {
+    if (status != RetryStatus.EXHAUSTED && status != RetryStatus.SUCCESS) {
+      return;
+    }
+    RetryOutcomeEvent event = new RetryOutcomeEvent(
+        deadLetterProcess.getProcessType(),
+        deadLetterProcess.getProcessName(),
+        deadLetterProcess.getIdempotencyKey(),
+        deadLetterProcess.getRetryCount(),
+        deadLetterProcess.getMaxRetry(),
+        deadLetterProcess.getLastError(),
+        RetryExhaustionSource.DEAD_LETTER_REPLAY,
+        LocalDateTime.now()
+    );
+    if (status == RetryStatus.EXHAUSTED) {
+      retryExhaustionNotifier.notifyExhausted(event);
+    } else {
+      retryExhaustionNotifier.notifyReplaySuccess(event);
     }
   }
 
