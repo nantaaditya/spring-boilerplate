@@ -44,7 +44,6 @@ spring:
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false
-      read-unknown-enum-values-as-null: true
 
 logging:
   level:
@@ -94,7 +93,7 @@ apps:
     enable-api-log: ${ENABLE_API_LOG:true}
     ignored-trace-log-path: ${IGNORED_TRACE_LOG_PATH:*/swagger-ui,*/swagger-ui/*,*/v3/api-docs,*/v3/api-docs/*}
     sensitive-field: ${SENSITIVE_FIELDS:x-client-id}
-    log-format: ${LOG_FORMAT:JSON}
+    log-format: ${LOG_FORMAT:json}
   swagger:
     host: ${SWAGGER_HOST:http://localhost}
   retry.configurations:
